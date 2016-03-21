@@ -1,0 +1,47 @@
+---
+title: "Vignette Title"
+author: "Vignette Author"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r load packages}
+library(jagsUI)
+```
+
+```{r load and wrangle the data}
+rivers<-"wb jimmy"
+gr<-getGrowth(rivers=rivers)
+
+temp<-tbl(conDplyr,"data_hourly_temperature") %>% 
+  filter(river==rivers) %>%
+  collect() %>% 
+  data.table() %>% 
+  mutate(date=as.Date(datetime)) %>%
+  .[date>=min(gr$startDate)&date<=max(gr$endDate)]
+
+gr[,':='(startTime=min(which(temp$datetime>as.POSIXct(startDate))),
+      endTime=max(which(temp$datetime<as.POSIXct(endDate)))),
+   by=.(tag,startDate)]
+sumOverArray<-array(0,dim=c(nrow(temp),nrow(gr)))
+for(g in 1:nrow(gr)){
+  sumOverArray[gr$startTime[g]:gr$endTime[g],g]<-1
+}
+jagsData<-list(grDATA=gr$growth,
+               tempDATA=temp$temperature,
+               startTime=gr$startTime,
+               endTime=gr$endTime,
+               nTimes=nrow(temp),
+               nObs=nrow(gr))
+
+```
+
+```{r make model file and fit the model}
+createModel()
+
+out<-fitModel(jagsData=jagsData)
+```

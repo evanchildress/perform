@@ -1,0 +1,64 @@
+#'Creates model file for performance model
+#'
+createModel<-function(fileOut="model.txt"){
+  cat("model{
+    #performance parameters
+    ctMax~dnorm(16,0.01)
+    tOpt~dnorm(22,0.01)
+    sigma~dunif(0,15)
+
+    #maximum hourly growth rate (which is then scaled by the performance function)
+    grMax~dunif(0,1)
+
+    eps~dunif(0,1000)
+    tauEps<-1/pow(eps,2)
+
+    for(t in 1:nTimes){
+      perf[t]<-ifelse(tempDATA[t]>tOpt,1-(((tempDATA[t])-tOpt)/(tOpt-ctMax))^2,
+                    exp(-((tempDATA[t]-tOpt)/(2*sigma))^2))
+    }
+    for(i in 1:nObs){
+      p[i]<-sum(perf[startTime[i]:endTime[i]])
+    }
+
+    for(i in 1:nObs){
+      gr[i]<-p[i]*grMax
+      grDATA[i]~dnorm(gr[i],tauEps)
+    }
+
+    grDailyMax<-grMax*24
+  }",file=fileOut)
+}
+
+createModel<-function(fileOut="model.txt"){
+  cat("model{
+      #performance parameters
+      ctMax~dnorm(16,0.01)
+      tOpt~dnorm(22,0.01)
+      sigma~dunif(0,15)
+
+      #maximum hourly growth rate (which is then scaled by the performance function)
+      grMax~dunif(0,1)
+
+      eps~dunif(0,1000)
+      tauEps<-1/pow(eps,2)
+
+      for(t in 1:nTimes){
+      perf[t]<-ifelse(tempDATA[t]>tOpt,1-(((tempDATA[t])-tOpt)/(tOpt-ctMax))^2,
+      exp(-((tempDATA[t]-tOpt)/(2*sigma))^2))
+      for(i in 1:nObs){
+      perfCensor[t,i]<-perf[t]*sumOverArray[,i]
+      }
+      }
+      for(i in 1:nObs){
+      p[i]<-sum(perfCensor[,i])
+      }
+
+      for(i in 1:nObs){
+      gr[i]<-p[i]*grMax
+      grDATA[i]~dnorm(gr[i],tauEps)
+      }
+
+      grDailyMax<-grMax*24
+}",file=fileOut)
+}
