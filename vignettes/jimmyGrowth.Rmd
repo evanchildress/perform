@@ -18,8 +18,8 @@ library(getWBData)
 ```
 
 ```{r load and wrangle the data}
-rivers<-"wb jimmy"
-gr<-getGrowth(rivers=rivers)
+rivers<-"west brook"
+gr<-getGrowth(sp="bkt",rivers=rivers)
 #gr<-gr[1:100]
 
 
@@ -46,12 +46,13 @@ jagsData<-list(grDATA=gr$growth,
                nTimes=nrow(temp),
                nObs=nrow(gr),
                medianLengthDATA=gr[,(startLength+endLength)/2])
-jagsData[['above85']]<-1+as.numeric(jagsData$medianLengthDATA>=85)
+#jagsData[['above85']]<-1+as.numeric(jagsData$medianLengthDATA>=85)
 ```
 
 ```{r make model file and fit the model}
 createModel()
 inits<-function(){list(ctMax=dnorm(20,0.5))}
+
 
 out<-fitModel(jagsData=jagsData,parallel=T)
 ```

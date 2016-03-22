@@ -14,7 +14,7 @@ for(g in 1:2){
     grSlope[g]~dnorm(0,0.01)
 }
     for(i in 1:nObs){
-     grMax[i]<-grInt[above85[i]]+grSlope[above85[i]]*medianLengthDATA[i]
+     grMax[i]<-grInt+grSlope*medianLengthDATA[i]
     }
 
     eps~dunif(0,1000)
