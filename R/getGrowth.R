@@ -22,6 +22,6 @@ getGrowth<-function(sp='bkt',rivers='wb jimmy'){
            ,by=tag]
 
   growth[,time:=as.numeric(endDate-startDate)]
-  growth[,gPerDay:=growth/time]
+  growth[,mmPerDay:=growth/time]
   return(growth)
 }

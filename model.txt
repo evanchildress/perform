@@ -1,11 +1,18 @@
 model{
     #performance parameters
     ctMax~dnorm(16,0.01)
-    tOpt~dnorm(22,0.01)
+    tOpt~dnorm(22,1)
     sigma~dunif(0,15)
 
     #maximum hourly growth rate (which is then scaled by the performance function)
-    grMax~dunif(0,1)
+    # grMax~dunif(0,1)
+for(g in 1:2){
+    grInt[g]~dnorm(0,0.01)
+    grSlope[g]~dnorm(0,0.01)
+}
+    for(i in 1:nObs){
+     grMax[i]<-grInt[above85[i]]+grSlope[above85[i]]*medianLengthDATA[i]
+    }
 
     eps~dunif(0,1000)
     tauEps<-1/pow(eps,2)
@@ -19,7 +26,7 @@ model{
     }
 
     for(i in 1:nObs){
-      gr[i]<-p[i]*grMax
+      gr[i]<-p[i]*grMax[i]
       grDATA[i]~dnorm(gr[i],tauEps)
     }
 

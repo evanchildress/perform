@@ -10,12 +10,18 @@ vignette: >
 ---
 
 ```{r load packages}
+library(dplyr)
+library(data.table)
+library(reshape2)
 library(jagsUI)
+library(getWBData)
 ```
 
 ```{r load and wrangle the data}
 rivers<-"wb jimmy"
 gr<-getGrowth(rivers=rivers)
+#gr<-gr[1:100]
+
 
 temp<-tbl(conDplyr,"data_hourly_temperature") %>% 
   filter(river==rivers) %>%
@@ -27,21 +33,34 @@ temp<-tbl(conDplyr,"data_hourly_temperature") %>%
 gr[,':='(startTime=min(which(temp$datetime>as.POSIXct(startDate))),
       endTime=max(which(temp$datetime<as.POSIXct(endDate)))),
    by=.(tag,startDate)]
-sumOverArray<-array(0,dim=c(nrow(temp),nrow(gr)))
-for(g in 1:nrow(gr)){
-  sumOverArray[gr$startTime[g]:gr$endTime[g],g]<-1
-}
+
+# sumOverArray<-array(0,dim=c(nrow(temp),nrow(gr)))
+# for(g in 1:nrow(gr)){
+#   sumOverArray[gr$startTime[g]:gr$endTime[g],g]<-1
+# }
+
 jagsData<-list(grDATA=gr$growth,
                tempDATA=temp$temperature,
                startTime=gr$startTime,
                endTime=gr$endTime,
                nTimes=nrow(temp),
-               nObs=nrow(gr))
-
+               nObs=nrow(gr),
+               medianLengthDATA=gr[,(startLength+endLength)/2])
+jagsData[['above85']]<-1+as.numeric(jagsData$medianLengthDATA>=85)
 ```
 
 ```{r make model file and fit the model}
 createModel()
+inits<-function(){list(ctMax=dnorm(20,0.5))}
 
-out<-fitModel(jagsData=jagsData)
+out<-fitModel(jagsData=jagsData,parallel=T)
 ```
+
+```{r examine results}
+plot(NA,xlim=c(0,22),ylim=c(-2,1))
+for(i in sample(1:length(out$sims.list$tOpt),300)){
+  points(predictPerformance(0:22,tOpt=out$sims.list$tOpt[i],
+                     sigma=out$sims.list$sigma[i],
+                     ctMax=out$sims.list$ctMax[i])~I(0:22),
+       type='l',col='gray')
+}
