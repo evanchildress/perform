@@ -10,18 +10,18 @@ vignette: >
 ---
 
 ```{r load packages}
-library(dplyr)
-library(data.table)
-library(reshape2)
-library(jagsUI)
-library(getWBData)
+
+# library(dplyr)
+# library(data.table)
+# library(reshape2)
+# library(jagsUI)
+# library(getWBData)
 ```
 
 ```{r load and wrangle the data}
 rivers<-"west brook"
-gr<-getGrowth(sp="bkt",rivers=rivers)
+gr<-getGrowth(rivers=rivers)
 #gr<-gr[1:100]
-
 
 temp<-tbl(conDplyr,"data_hourly_temperature") %>% 
   filter(river==rivers) %>%
@@ -46,15 +46,16 @@ jagsData<-list(grDATA=gr$growth,
                nTimes=nrow(temp),
                nObs=nrow(gr),
                medianLengthDATA=gr[,(startLength+endLength)/2])
-#jagsData[['above85']]<-1+as.numeric(jagsData$medianLengthDATA>=85)
 ```
 
 ```{r make model file and fit the model}
 createModel()
-inits<-function(){list(ctMax=dnorm(20,0.5))}
+inits<-function(){list(ctMax=rnorm(1,20,0.5),
+                       tOpt=rnorm(1,9,0.5))
+}
 
-
-out<-fitModel(jagsData=jagsData,parallel=T)
+out<-fitModel(jagsData=jagsData,inits=inits,parallel=T,nb=2000,ni=3000)
+saveRDS(out,file="results/outObear.rds")
 ```
 
 ```{r examine results}

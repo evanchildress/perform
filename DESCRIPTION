@@ -8,6 +8,7 @@ Maintainer: Who to complain to <yourfault@somewhere.net>
 Description: More about what it does (maybe more than one line)
 License: What license is it under?
 LazyData: TRUE
+Depends: data.table, dplyr, jagsUI, getWBData, reshape2
 Suggests: knitr,
     rmarkdown
 VignetteBuilder: knitr

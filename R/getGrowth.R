@@ -5,6 +5,7 @@ getGrowth<-function(sp='bkt',rivers='wb jimmy'){
     addTagProperties %>%
     filter(species==sp & !is.na(observedLength) & river %in% rivers) %>%
     addSampleProperties() %>%
+    data.frame() %>%
     data.table()
 
   dat<-dat[tag %in% (dat[,.N,by=tag] %>% .[N>1,tag]) ] %>%
