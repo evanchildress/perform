@@ -1,7 +1,4 @@
-#'Creates model file for performance model
-#'@export
-createModel<-function(fileOut="model.txt"){
-  cat("model{
+model{
     #performance parameters
     ctMax~dnorm(21,1)
     tOpt~dnorm(16,0.5)
@@ -12,8 +9,8 @@ createModel<-function(fileOut="model.txt"){
       # grMax~dunif(0,1)
 
      #derivative of the von Bert is linear
-      beta[1]~dnorm(0,10000)T(0,0.1)
-      beta[2]~dnorm(0,1000000)T(-0.1,0)
+      beta[1]~dnorm(0,0.01)
+      beta[2]~dnorm(0,0.01)
     #derivative of the gompertz is: a*b*c*exp(b*exp(c*x))*exp(c*x)
       # beta[1]~dnorm(150,0.01)
       # beta[2]~dnorm(-5,0.1)T(-10,0)
@@ -46,5 +43,4 @@ createModel<-function(fileOut="model.txt"){
     }
 
     grDailyMax<-grMax*24
-  }",file=fileOut)
-}
+  }

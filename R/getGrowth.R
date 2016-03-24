@@ -1,5 +1,7 @@
 #' calculates growth over repeated observations
 #'
+#'@export
+
 getGrowth<-function(sp='bkt',rivers='wb jimmy'){
   dat<-createCoreData("electrofishing") %>%
     addTagProperties %>%
@@ -23,6 +25,8 @@ getGrowth<-function(sp='bkt',rivers='wb jimmy'){
            ,by=tag]
 
   growth[,time:=as.numeric(endDate-startDate)]
-  growth[,mmPerDay:=growth/time]
+  growth[,':='(mmPerDay=growth/time,
+               medianAge=(startAge+endAge)/2,
+               medianLength=(startLength+endLength)/2)]
   return(growth)
 }
