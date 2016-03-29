@@ -1,4 +1,7 @@
-model{
+#'Creates model file for performance model
+#'@export
+createModelRandom<-function(fileOut="model.txt"){
+  cat("model{
 
     #performance parameters
     ctMax~dnorm(21,1)
@@ -25,9 +28,9 @@ model{
 
     for(i in 1:nEvalRows){
       for(m in 1:6){
-        monEff[i,m]<-ranMonth[m]*propMonth[evalRows[i],m]
+        monEff[evalRows[i]-1],m]<-ranMonth[m]*propMonth[evalRows[i],m]
       }
-      monthEffect[i]<-sum(monEff[i,])
+      monthEffect[evalRows[i]-1]<-sum(monEff[evalRows[i]-1,])
     }
 
     #density effect on grMax
@@ -35,8 +38,8 @@ model{
 
     for(i in 1:nEvalRows){
 
-      grMax[i]<-beta[1]+beta[2]*length[evalRows[i]-1] #von bert
-                +monthEffect[i] #random month effect
+      grMax[evalRows[i]-1]<-beta[1]+beta[2]*length[evalRows[i]-1] #von bert
+                +monthEffect[evalRows[i]-1] #random month effect
                 #+ranInd[ind[i]] #random individual effect
                 #+densityEffect[i] #density effect
     }
@@ -48,7 +51,7 @@ model{
                     exp(-((tempDATA[t]-tOpt)/(2*sigma))^2))
     }
     for(i in 1:nEvalRows){
-      p[i]<-sum(perf[time[evalRows[i]-1]:time[evalRows[i]]])
+      p[evalRows[i]-1]<-sum(perf[time[evalRows[i]-1]:time[evalRows[i]]])
     }
 
     for(i in 1:nFirstObsRows){
@@ -56,10 +59,11 @@ model{
       lengthDATA[firstObsRows[i]]~dnorm(length[firstObsRows[i]],9/1)
     }
     for(i in 1:nEvalRows){
-      gr[i]~dnorm(p[i]*grMax[i],tauEps)
-      length[evalRows[i]]<-length[evalRows[i]-1]+gr[i]
+      gr[evalRows[i]-1]~dnorm(p[evalRows[i]-1]*grMax[evalRows[i]-1],tauEps)
+      length[evalRows[i]]<-length[evalRows[i]-1]+gr[evalRows[i]-1]
       lengthDATA[evalRows[i]]~dnorm(length[evalRows[i]],9/1)
     }
 
     # grDailyMax<-grMax*24
-  }
+  }",file=fileOut)
+}

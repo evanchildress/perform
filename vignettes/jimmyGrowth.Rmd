@@ -37,7 +37,7 @@ temp<-tbl(conDplyr,"data_hourly_temperature") %>%
 gr[,':='(startTime=min(which(temp$datetime>as.POSIXct(startDate))),
       endTime=max(which(temp$datetime<as.POSIXct(endDate)))),
    by=.(tag,startDate)]
-
+gr[,tagIndex:=match(tag,unique(tag))]
 # sumOverArray<-array(0,dim=c(nrow(temp),nrow(gr)))
 # for(g in 1:nrow(gr)){
 #   sumOverArray[gr$startTime[g]:gr$endTime[g],g]<-1
@@ -51,7 +51,9 @@ jagsData<-list(grDATA=gr$growth,
                endTime=gr$endTime,
                nTimes=nrow(temp),
                nObs=nrow(gr),
-               startLengthDATA=gr$startLength)
+               startLengthDATA=gr$startLength,
+               ind=gr$tagIndex,
+               nInd=max(gr$tagIndex))
 
 createModel()
 inits<-function(){list(ctMax=rnorm(1,20,0.5),
