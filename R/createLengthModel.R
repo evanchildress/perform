@@ -1,6 +1,6 @@
 #'Creates model file for performance model
 #'@export
-createModelRandom<-function(fileOut="model.txt"){
+createLengthModel<-function(fileOut="model.txt"){
   cat("model{
 
     #performance parameters
@@ -9,8 +9,8 @@ createModelRandom<-function(fileOut="model.txt"){
     sigma~dunif(0,15)
 
     #derivative of the von Bert is linear, intercept and slope(with length) of hourly growth rate
-    beta[1]~dnorm(0,10000)T(0,0.1)
-    beta[2]~dnorm(0,1000000)T(-0.1,0)
+    beta1~dnorm(0,10000)T(0,0.1)
+    beta2~dnorm(0,1000000)T(-0.1,0)
 
     # #individual random effect on grMax
     #    for(f in 1:nInd){
@@ -27,8 +27,8 @@ createModelRandom<-function(fileOut="model.txt"){
       sigmaMonth~dunif(0,2)
 
     for(i in 1:nEvalRows){
-      for(m in 1:6){
-        monEff[evalRows[i]-1],m]<-ranMonth[m]*propMonth[evalRows[i],m]
+      for(m in 1:nMonths){
+        monEff[evalRows[i]-1,m]<-ranMonth[m]*propMonth[evalRows[i],m]
       }
       monthEffect[evalRows[i]-1]<-sum(monEff[evalRows[i]-1,])
     }
@@ -38,7 +38,7 @@ createModelRandom<-function(fileOut="model.txt"){
 
     for(i in 1:nEvalRows){
 
-      grMax[evalRows[i]-1]<-beta[1]+beta[2]*length[evalRows[i]-1] #von bert
+      grMax[evalRows[i]-1]<-beta1+beta2*length[evalRows[i]-1] #von bert
                 +monthEffect[evalRows[i]-1] #random month effect
                 #+ranInd[ind[i]] #random individual effect
                 #+densityEffect[i] #density effect

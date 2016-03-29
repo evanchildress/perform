@@ -1,0 +1,145 @@
+#' simulates length based on performance curves then fits a model
+#'
+#' @export
+
+#simulation setttings
+pSim<-function(tOpt,ctMax,sigma,eps,nYoy=100,seasonal=T,
+               river,modelFile="model.txt"){
+  pSurv<-0.76
+  if(!seasonal){surv<-surv^4}
+  pDetect<-0.6
+# tOpt<-15
+# ctMax<-20
+# sigma<-4
+#
+beta1<-0.015
+beta2<- -6e-05
+
+#
+# nYoy<-10
+
+r<-river
+
+  temp<-tbl(conDplyr,"data_hourly_temperature") %>%
+#  temp<-readRDS("~/wbTemps.rds") %>%
+    filter(river==r) %>%
+    collect() %>%
+    data.table() %>%
+    mutate(date=as.Date(datetime)) %>%
+    .[date>as.Date("1998-09-30")] %>%
+    setkey(datetime)
+
+  temp[,performance:=predictPerformance(temperature,tOpt,ctMax,sigma)]
+if(seasonal){
+  sampleDates<-data.table(date=seq(as.Date("1998-10-01"),
+                                   as.Date("2016-01-01"),
+                                   by="quarter")) %>%
+    .[,season:=match(month(date),c(1,4,7,10))] %>%
+    .[,sample:=1:nrow(.)] %>%
+    setkey(sample)
+} else {
+  sampleDates<-data.table(date=seq(as.Date("1998-10-01"),
+                                   as.Date("2016-01-01"),
+                                   by="year")) %>%
+    .[,season:=4] %>%
+    .[,sample:=1:nrow(.)] %>%
+    setkey(sample)
+}
+
+  temp[,sample:=sum(date>=sampleDates$date),by=date]
+
+  perf<-temp[,.(perf=sum(performance)),by=sample]
+
+  core<-data.table(sample=rep(sampleDates[season==4,sample],each=nYoy)) %>%
+    .[,length:=rnorm(nrow(.),80,6)] %>%
+    .[,tag:=1:nrow(.)] %>%
+    setkey(sample) %>%
+    .[,.SD[sampleDates],by=tag]
+  for(t in 1:max(core$tag)){
+    for(s in core[tag==t&!is.na(length),sample]:
+             min(c(core[tag==t&!is.na(length),sample]+6),
+                 max(sampleDates$sample))){
+      startLength<-core[tag==t&sample==s,length]
+      core[tag==t&sample==s+1,length:=startLength+
+                                      (beta1+startLength*beta2)*
+                                        perf[sample==s,perf]+
+                                       rnorm(1,0,eps)]
+    }
+  }
+
+  core<-core[!is.na(length)] %>%
+    .[,firstObs:=as.numeric(date==min(date)),by=tag] %>%
+    .[,':='(time=which.min(
+                        abs(
+                          temp$datetime-as.POSIXct(paste0(date," 00:00:00"))
+                            )
+                          )),
+        by=.(tag,date)] %>%
+    .[,alive:=rbinom(nrow(.),1,pSurv)] %>%
+    .[,length:=c(length[1:min(min(which(alive==0)),length(length))],
+                 rep(NA,ifelse(min(which(alive==0))==Inf,0,length(length)-min(which(alive==0))))),
+                 by=tag] %>%
+    .[,alive:=NULL] %>%
+    .[!is.na(length)] %>%
+    .[,detected:=rbinom(nrow(.),1,pDetect)] %>%
+    .[detected==0,length:=NA] %>%
+    .[,detected:=NULL]
+
+  temp[,month:=round((month(date)+1)/3)]
+  hoursPerMonth<-temp[date>=as.Date("2003-01-01")&date<=as.Date("2014-12-31"),
+                      .(hours=.N/length(unique(year(date)))),
+                      by=month] %>%
+    setkey(month)
+
+  propMonth<-core[,.(tag,time)] %>%
+    .[,startTime:=as.numeric(shift(time)),by=tag] %>%
+    .[,obs:=1:nrow(.)] %>%
+    .[is.na(startTime),startTime:=time-1]
+
+  propMonth<-propMonth[!is.na(startTime),temp[startTime:time,.N,by=month] %>%
+                         setkey(month) %>%
+                         .[hoursPerMonth] %>%
+                         .[is.na(N),N:=0] %>%
+                         .[,propMonth:=N/hours] %>%
+                         .[,.(propMonth,month)],
+                       by=.(obs)] %>%
+    melt(id.vars=c("month","obs")) %>%
+    acast(obs~month)
+
+  jagsData<-list(lengthDATA=core$length,
+                 firstObsRows=which(core$firstObs==1),
+                 nFirstObsRows=length(which(core$firstObs==1)),
+                 evalRows=which(core$firstObs==0),
+                 nEvalRows=length(which(core$firstObs==0)),
+                 propMonth=propMonth,
+                 tempDATA=temp$temperature,
+                 nTimes=nrow(temp),
+                 time=core$time,
+                 nMonths=max(hoursPerMonth$month)
+                 )
+
+  createLengthModel()
+  inits<-function(){list(beta1=0.015,
+                         beta2= -6e-05)}
+
+  parsToSave<-c("tOpt","ctMax","sigma","beta1","beta2","eps","length")
+
+  out<-fitModel(jagsData=jagsData,inits=inits,modelFile=modelFile,
+                parallel=T,nb=10,ni=15,params=parsToSave)
+
+  resultsCols<-c("parameter","mean","sd",paste0("q",quantsToSave*100),
+                 "rHat","trueValue")
+  res<-out$summary %>%
+       data.table(keep.rownames=T) %>%
+       setnames(c("parameter","mean","sd","q2.5","q25",
+                  "q50","q75","q97.5","rHat","nEff","overlap0","f")) %>%
+       .[parameter %in% parsToSave[1:(length(parsToSave)-1)],
+         .(parameter,mean,q2.5,q50,q97.5,rHat)]
+  res$trueValue<-sapply(parsToSave[1:(length(parsToSave)-1)],get)
+  res$seasonal<-seasonal
+  res$nObs<-nrow(core[!is.na(length)])-length(unique(core$tag))
+  res$riverTemp<-r
+  return(res)
+}
+
+
