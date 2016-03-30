@@ -6,12 +6,12 @@
 #SBATCH -n 1
 #SBATCH -c 3
 #SBATCH -t 7-00:00:00
-#SBATCH --array=1-100
+#SBATCH --array=1-2
 #SBATCH --mail-user=echildress@usgs.gov
 #SBATCH --mail-type=BEGIN,END,FAIL
 
 module load jags/4.1.0-intel
 
-Rscript ${SLURM_SUBMIT_DIR}/perfSims.R
+Rscript ${SLURM_SUBMIT_DIR}/perform/runSims.R
 
 exit

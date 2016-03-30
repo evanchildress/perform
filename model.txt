@@ -1,13 +1,14 @@
 model{
 
     #performance parameters
-    ctMax~dnorm(21,1)
-    tOpt~dnorm(11,0.5)
-    sigma~dunif(0,15)
+    maxAdd~dnorm(5,0.1)T(0,100)
+    ctMax<-maxAdd+tOpt
+    tOpt~dnorm(11,0.1)
+    sigma~dunif(0,10)
 
     #derivative of the von Bert is linear, intercept and slope(with length) of hourly growth rate
     beta1~dnorm(0,10000)T(0,0.1)
-    beta2~dnorm(0,1000000)T(-0.1,0)
+    beta2~dnorm(0,1000000000)T(-0.1,0)
 
     # #individual random effect on grMax
     #    for(f in 1:nInd){
@@ -16,19 +17,19 @@ model{
     #    tauInd<-1/pow(sigmaInd,2)
     #    sigmaInd~dunif(0,2)
 
-    #random month effect on grMax
-      for(m in 1:6){
-        ranMonth[m]~dnorm(0,tauMonth)
-      }
-      tauMonth<-1/pow(sigmaMonth,2)
-      sigmaMonth~dunif(0,2)
-
-    for(i in 1:nEvalRows){
-      for(m in 1:nMonths){
-        monEff[evalRows[i]-1,m]<-ranMonth[m]*propMonth[evalRows[i],m]
-      }
-      monthEffect[evalRows[i]-1]<-sum(monEff[evalRows[i]-1,])
-    }
+#     #random month effect on grMax
+#       for(m in 1:nMonths){
+#         ranMonth[m]~dnorm(0,tauMonth)
+#       }
+#       tauMonth<-1/pow(sigmaMonth,2)
+#       sigmaMonth~dunif(0,2)
+#
+#     for(i in 1:nEvalRows){
+#       for(m in 1:nMonths){
+#         monEff[evalRows[i]-1,m]<-ranMonth[m]*propMonth[evalRows[i],m]
+#       }
+#       monthEffect[evalRows[i]-1]<-sum(monEff[evalRows[i]-1,])
+#     }
 
     #density effect on grMax
 
@@ -36,11 +37,11 @@ model{
     for(i in 1:nEvalRows){
 
       grMax[evalRows[i]-1]<-beta1+beta2*length[evalRows[i]-1] #von bert
-                +monthEffect[evalRows[i]-1] #random month effect
+                #+monthEffect[evalRows[i]-1] #random month effect
                 #+ranInd[ind[i]] #random individual effect
                 #+densityEffect[i] #density effect
     }
-    eps~dunif(0,1000)
+    eps~dunif(0,100)
     tauEps<-1/pow(eps,2)
 
     for(t in 1:nTimes){
