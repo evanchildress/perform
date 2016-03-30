@@ -130,7 +130,7 @@ if(seasonal){
   parsToSave<-c("tOpt","ctMax","sigma","beta1","beta2","eps","length")
 
   out<-fitModel(jagsData=jagsData,inits=inits,modelFile=modelFile,
-                parallel=T,nb=1,ni=5000,params=parsToSave)
+                parallel=T,nb=1,ni=10000,nt=1,params=parsToSave)
 
   res<-out$summary %>%
        data.table(keep.rownames=T) %>%

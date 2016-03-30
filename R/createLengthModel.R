@@ -5,13 +5,15 @@ createLengthModel<-function(fileOut="model.txt"){
   cat("model{
 
     #performance parameters
-    ctMax~dnorm(21,1)
-    tOpt~dnorm(11,0.5)
+    maxAdd~dnorm(5,0.1)T(0,100)
+    ctMax<-tOpt+maxAdd
+    tOpt~dnorm(12,0.1)
     sigma~dunif(0,15)
+
 
     #derivative of the von Bert is linear, intercept and slope(with length) of hourly growth rate
     beta1~dnorm(0,10000)T(0,0.1)
-    beta2~dnorm(0,1000000)T(-0.1,0)
+    beta2~dnorm(0,1000000000)T(-0.1,0)
 
     # #individual random effect on grMax
     #    for(f in 1:nInd){
