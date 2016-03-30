@@ -123,25 +123,26 @@ if(seasonal){
                  nMonths=max(hoursPerMonth$month)
                  )
 
-  createLengthModel()
+#  createLengthModel()
   inits<-function(){list(beta1=0.015,
                          beta2= -6e-05)}
 
-  parsToSave<-c("tOpt","ctMax","sigma","beta1","beta2","eps","length")
+  parsToSave<-c("tOpt","ctMax","sigma","beta1","beta2","eps")
 
   out<-fitModel(jagsData=jagsData,inits=inits,modelFile=modelFile,
-                parallel=T,nb=1,ni=5000,params=parsToSave)
+                parallel=T,nb=2,ni=12,nt=2,params=parsToSave)
 
   res<-out$summary %>%
        data.table(keep.rownames=T) %>%
        setnames(c("parameter","mean","sd","q2.5","q25",
                   "q50","q75","q97.5","rHat","nEff","overlap0","f")) %>%
-       .[parameter %in% parsToSave[1:(length(parsToSave)-1)],
+       .[parameter %in% parsToSave[1:(length(parsToSave))],
          .(parameter,mean,q2.5,q50,q97.5,rHat)]
-  res$trueValue<-unlist(mget(parsToSave[1:(length(parsToSave)-1)]))
+  res$trueValue<-unlist(mget(parsToSave[1:(length(parsToSave))]))
   res$seasonal<-seasonal
   res$nObs<-nrow(core[!is.na(length)])-length(unique(core$tag))
   res$riverTemp<-r
+
   return(res)
 }
 
