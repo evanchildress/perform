@@ -1,5 +1,6 @@
 #'Creates model file for performance model
 #'@export
+
 createLengthModel<-function(fileOut="model.txt"){
   cat("model{
 
