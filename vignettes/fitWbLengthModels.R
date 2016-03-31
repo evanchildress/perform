@@ -1,27 +1,12 @@
-
 library(perform)
-# library(dplyr)
-# library(data.table)
-# library(reshape2)
-# library(jagsUI)
-# library(getWBData)
 
-rivers<-c("wb mitchell","wb obear","west brook")
-#rivers<-"wb jimmy"
+rivers<-c("wb jimmy","wb mitchell","wb obear","west brook")
 for(r in rivers){
-  core<-createCoreData("electrofishing") %>%
-    addTagProperties() %>%
-    filter(species=="bkt" & !is.na(observedLength) & river==r) %>%
-    createCmrData() %>%
-    addKnownZ() %>%
-    filter(knownZ==1) %>%
-    addSampleProperties() %>%
-    data.frame() %>%
-    data.table() %>%
-    .[,nObs:=sum(!is.na(observedLength)),by=tag] %>%
-    .[nObs>1] %>%
-    .[,nObs:=NULL] %>%
-    .[,tagIndex:=match(tag,unique(tag))]
+  core<-wbLengths %>%
+    .[river==r] %>%
+    .[,tagIndex:=match(tag,unique(tag))] %>%
+    setkey(tagIndex,detectionDate) %>%
+    .[,firstObs:=detectionDate==min(detectionDate),by=tag]
 
   jagsData<-createJagsData(data.frame(core) %>% addEnvironmental()) %>%
     .[c("firstObsRows",
@@ -33,23 +18,22 @@ for(r in rivers){
 
   core<-core[,.(tag,tagIndex,detectionDate,observedLength)]
 
-  temp<-tbl(conDplyr,"data_hourly_temperature") %>%
-    filter(river==r) %>%
-    collect() %>%
-    data.table() %>%
-    mutate(date=as.Date(datetime)) %>%
+  # temp<-tbl(conDplyr,"data_hourly_temperature") %>%
+  t<-temp %>%
+    .[river==r] %>%
+    .[,date:=as.Date(datetime)]%>%
     .[datetime>=min(core$detectionDate)&datetime<=max(core$detectionDate)] %>%
     setkey(datetime)
 
   core[,':='(time=which.min(
     abs(
-      temp$datetime-as.POSIXct(paste0(detectionDate," 12:00:00"))
+      t$datetime-as.POSIXct(paste0(detectionDate," 12:00:00"))
     )
   )),
   by=.(tag,detectionDate)]
 
-  temp[,month:=round((month(date)+0.1)/2)]
-  hoursPerMonth<-temp[date>=as.Date("2003-01-01")&date<=as.Date("2014-12-31"),
+  t[,month:=round((month(date)+0.1)/2)]
+  hoursPerMonth<-t[date>=as.Date("2003-01-01")&date<=as.Date("2014-12-31"),
                       .(hours=.N/length(unique(year(date)))),
                       by=month] %>%
     setkey(month)
@@ -59,7 +43,7 @@ for(r in rivers){
     .[,obs:=1:nrow(.)] %>%
     .[is.na(startTime),startTime:=time-1]
 
-  propMonth<-propMonth[!is.na(startTime),temp[startTime:time,.N,by=month] %>%
+  propMonth<-propMonth[!is.na(startTime),t[startTime:time,.N,by=month] %>%
                          setkey(month) %>%
                          .[hoursPerMonth] %>%
                          .[is.na(N),N:=0] %>%
@@ -69,12 +53,22 @@ for(r in rivers){
     melt(id.vars=c("month","obs")) %>%
     acast(obs~month)
 
-  jagsData$propMonth<-propMonth
-  jagsData$tempDATA<-temp$temperature
-  jagsData$nTimes<-nrow(temp)
-  jagsData$time<-core$time
+  jagsData<-list(lengthDATA=core$length,
+                 firstObsRows=which(core$firstObs==1),
+                 nFirstObsRows=length(which(core$firstObs==1)),
+                 evalRows=which(core$firstObs==0),
+                 nEvalRows=length(which(core$firstObs==0)),
+                 propMonth=propMonth,
+                 tempDATA=t$temperature,
+                 nTimes=nrow(t),
+                 time=core$time,
+                 nMonths=max(hoursPerMonth$month)
+  )
+
+
 
   createModelRandom()
+
   inits<-function(){list(ctMax=rnorm(1,20,0.5),
                          tOpt=rnorm(1,9,0.5),
                          beta=c(0.015,-6e-05))
