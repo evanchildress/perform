@@ -6,11 +6,9 @@ library(perform)
 # library(jagsUI)
 # library(getWBData)
 
-rivers<-c("wb jimmy","wb mitchell","wb obear","west brook")
-#rivers<-c("wb obear")
+rivers<-c("wb mitchell","wb obear","west brook")
 #rivers<-"wb jimmy"
 for(r in rivers){
-  #if(r %in% c("wb mitchell","wb obear")){next}
   core<-createCoreData("electrofishing") %>%
     addTagProperties() %>%
     filter(species=="bkt" & !is.na(observedLength) & river==r) %>%
@@ -40,7 +38,7 @@ for(r in rivers){
     collect() %>%
     data.table() %>%
     mutate(date=as.Date(datetime)) %>%
-    .[date>=min(gr$startDate)&date<=max(gr$endDate)] %>%
+    .[datetime>=min(core$detectionDate)&datetime<=max(core$detectionDate)] %>%
     setkey(datetime)
 
   core[,':='(time=which.min(
@@ -82,7 +80,7 @@ for(r in rivers){
                          beta=c(0.015,-6e-05))
   }
 
-  out<-fitModel(jagsData=jagsData,inits=inits,parallel=T,nb=10000,ni=12000,nt=2)
+  out<-fitModel(jagsData=jagsData,inits=inits,parallel=T,nb=10000,ni=12000,nt=4)
   saveRDS(out,file=paste0("out",toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
   assign(paste0("out",which(r==rivers)),out)
 }
@@ -111,7 +109,7 @@ for(r in rivers){
 
 
 
-  predicted<-apply(out$sims.list$gr,2,mean)
+  predicted<-apply(out$sims.list$length,2,mean)
   plot(predicted~get(paste0("gr",which(r==rivers)))$growth,main=r,
        ylab="predicted growth",xlab="observed growth")
   abline(0,1)
