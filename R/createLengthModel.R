@@ -45,7 +45,7 @@ createLengthModel<-function(fileOut="model.txt"){
                 #+ranInd[ind[i]] #random individual effect
                 #+densityEffect[i] #density effect
     }
-    eps~dunif(0,100)
+    eps~dunif(0,0.01)
     tauEps<-1/pow(eps,2)
 
     for(t in 1:nTimes){
@@ -61,7 +61,8 @@ createLengthModel<-function(fileOut="model.txt"){
       lengthDATA[firstObsRows[i]]~dnorm(length[firstObsRows[i]],9/1)
     }
     for(i in 1:nEvalRows){
-      gr[evalRows[i]-1]~dnorm(p[evalRows[i]-1]*grMax[evalRows[i]-1],tauEps)
+      grRate[evalRows[i]-1]~dnorm(grMax[evalRows[i]-1],tauEps)
+      gr[evalRows[i]-1]<-grRate[evalRows[i]-1]*p[evalRows[i]-1]
       length[evalRows[i]]<-length[evalRows[i]-1]+gr[evalRows[i]-1]
       lengthDATA[evalRows[i]]~dnorm(length[evalRows[i]],9/1)
     }
