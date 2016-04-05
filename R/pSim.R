@@ -15,6 +15,7 @@ pSim<-function(tOpt,ctMax,sigma,eps,nYoy=50,seasonal=T,
 beta1<-0.015
 beta2<- -6e-05
 
+
 #
 # nYoy<-10
 
@@ -62,9 +63,8 @@ if(seasonal){
                  max(sampleDates$sample))){
       startLength<-core[tag==tg&sample==s,length]
       core[tag==tg&sample==s+1,length:=startLength+
-                                      (beta1+startLength*beta2)*
-                                        perf[sample==s,perf]+
-                                       rnorm(1,0,eps)]
+                                      rnorm(1,(beta1+startLength*beta2),eps)*
+                                        perf[sample==s,perf]]
     }
   }
 
