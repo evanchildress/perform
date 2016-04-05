@@ -21,22 +21,23 @@ results<-NULL
 iter<-1
 #for(opt in c(10,15,20)){
 #  for(tMax in c(16,20,24,27)){
-#    for(r in c("wb obear","wb mitchell")){
+#    for(r in c("wb jimmy")){
 #      for(e in c(2,5,8)){
 for(opt in c(10)){
   for(tMax in c(16)){
     for(r in c("wb obear")){
-      for(e in c(2)){
+      for(e in c(0.000375,0.00075,0.0015)){
         for(s in c(T)){
           if(tMax<=opt){next}
 	  cat("starting iteration ",iter," of 60")
-          pSim(tOpt=opt,ctMax=tMax,sigma=4,eps=e,seasonal=s,nYoy=4,river=r,modelFile="perform/model.txt")
-          results<-rbind(results,r)
+          re<-pSim(tOpt=opt,ctMax=tMax,sigma=4,eps=e,seasonal=s,nYoy=4,river=r,modelFile="perform/model.txt")
+          results<-rbind(results,re)
 	  iter<-iter+1
         }
       }
     }
   }
 }
+results$simNum<-simNum
 saveRDS(results,paste0("~/perform/output/pSim",simNum,".rds"))
 cat("sim ",simNum," complete")
