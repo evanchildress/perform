@@ -7,7 +7,7 @@ createLengthModel<-function(fileOut="model.txt"){
     #performance parameters
     maxAdd~dnorm(5,0.1)T(0,100)
     ctMax<-maxAdd+tOpt
-    tOpt~dnorm(11,0.1)
+    tOpt~dnorm(11,0.1)T(0,100)
     sigma~dunif(0,10)
 
     #derivative of the von Bert is linear, intercept and slope(with length) of hourly growth rate
