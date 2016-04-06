@@ -5,9 +5,9 @@ createLengthModel<-function(fileOut="model.txt"){
   cat("model{
 
     #performance parameters
-    maxAdd~dnorm(5,0.1)T(0,100)
+    maxAdd~dnorm(5,0.01)T(0,100)
     ctMax<-maxAdd+tOpt
-    tOpt~dnorm(11,0.1)T(0,100)
+    tOpt~dnorm(11,0.0001)T(0,100)
     sigma~dunif(0,10)
 
     #derivative of the von Bert is linear, intercept and slope(with length) of hourly growth rate
@@ -57,7 +57,7 @@ createLengthModel<-function(fileOut="model.txt"){
     }
 
     for(i in 1:nFirstObsRows){
-      length[firstObsRows[i]]~dnorm(90,0.001)
+      length[firstObsRows[i]]~dnorm(83.5,0.001)
       lengthDATA[firstObsRows[i]]~dnorm(length[firstObsRows[i]],9/1)
     }
     for(i in 1:nEvalRows){
