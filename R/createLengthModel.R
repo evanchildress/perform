@@ -14,6 +14,11 @@ createLengthModel<-function(fileOut="model.txt"){
     beta1~dnorm(0,10000)T(0,0.1)
     beta2~dnorm(0,1000000000)T(-0.1,0)
 
+    #variation on growth rate at tOpt
+    #eps~dnorm(0,0.001)T(0,0.01)
+    eps<-0.00000000001
+    tauEps<-1/pow(eps,2)
+
     # #individual random effect on grMax
     #    for(f in 1:nInd){
     #      ranInd[f]~dnorm(0,tauInd)
@@ -35,26 +40,23 @@ createLengthModel<-function(fileOut="model.txt"){
 #       monthEffect[evalRows[i]-1]<-sum(monEff[evalRows[i]-1,])
 #     }
 
-    #density effect on grMax
+    for(t in 1:nTimes){
+      perf[t]<-ifelse(tempDATA[t]>tOpt,1-((tempDATA[t]-tOpt)/(tOpt-ctMax))^2,
+                    exp(-((tempDATA[t]-tOpt)/(2*sigma))^2))
+    }
 
+    for(i in 1:nFirstObsRows){
+      length[firstObsRows[i]]~dnorm(90,0.001)
+      lengthDATA[firstObsRows[i]]~dnorm(length[firstObsRows[i]],10000)
+    }
 
     for(i in 1:nEvalRows){
+      p[evalRows[i]-1]<-sum(perf[time[evalRows[i]-1]:time[evalRows[i]]])
 
       grMax[evalRows[i]-1]<-beta1+beta2*length[evalRows[i]-1] #von bert
                 #+monthEffect[evalRows[i]-1] #random month effect
                 #+ranInd[ind[i]] #random individual effect
                 #+densityEffect[i] #density effect
-    }
-    eps~dunif(0,0.01)
-    tauEps<-1/pow(eps,2)
-
-    for(t in 1:nTimes){
-      perf[t]<-ifelse(tempDATA[t]>tOpt,1-(((tempDATA[t])-tOpt)/(tOpt-ctMax))^2,
-                    exp(-((tempDATA[t]-tOpt)/(2*sigma))^2))
-    }
-    for(i in 1:nEvalRows){
-      p[evalRows[i]-1]<-sum(perf[time[evalRows[i]-1]:time[evalRows[i]]])
-    }
 
     for(i in 1:nFirstObsRows){
       length[firstObsRows[i]]~dnorm(83.5,0.001)
@@ -62,9 +64,12 @@ createLengthModel<-function(fileOut="model.txt"){
     }
     for(i in 1:nEvalRows){
       grRate[evalRows[i]-1]~dnorm(grMax[evalRows[i]-1],tauEps)
+      #grRate[evalRows[i]-1]<-grMax[evalRows[i]-1]
+
       gr[evalRows[i]-1]<-grRate[evalRows[i]-1]*p[evalRows[i]-1]
+
       length[evalRows[i]]<-length[evalRows[i]-1]+gr[evalRows[i]-1]
-      lengthDATA[evalRows[i]]~dnorm(length[evalRows[i]],9/1)
+      lengthDATA[evalRows[i]]~dnorm(length[evalRows[i]],10000)
     }
 
     # grDailyMax<-grMax*24
