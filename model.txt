@@ -1,8 +1,8 @@
 model{
     #performance parameters
-    maxAdd~dnorm(5,0.001)
-    ctMax<-tOpt+maxAdd
-    tOpt~dnorm(11,0.001)T(0,50)
+    maxAdd~dnorm(5,0.01)T(0,100)
+    ctMax<-maxAdd+tOpt
+    tOpt~dnorm(11,0.0001)T(0,100)
     sigma~dunif(0,10)
 
     #maximum hourly growth rate (which is then scaled by the performance function)
@@ -28,10 +28,17 @@ model{
     }
     for(i in 1:nObs){
 
-      err[i]~dnorm(0,tauEps)#normal error on growth at tOpt
-      grMax[i]<-beta[1]+beta[2]*startLengthDATA[i]+err[i] #von bert plus noise
 
-      p[i]<-sum(perf[startTime[i]:endTime[i]]) #summed performance over growth period
+    for(i in 1:nFirstObsRows){
+      length[firstObsRows[i]]~dnorm(83.5,0.001)
+      lengthDATA[firstObsRows[i]]~dnorm(length[firstObsRows[i]],9/1)
+    }
+    for(i in 1:nEvalRows){
+      grRate[evalRows[i]-1]~dnorm(grMax[evalRows[i]-1],tauEps)
+      gr[evalRows[i]-1]<-grRate[evalRows[i]-1]*p[evalRows[i]-1]
+      length[evalRows[i]]<-length[evalRows[i]-1]+gr[evalRows[i]-1]
+      lengthDATA[evalRows[i]]~dnorm(length[evalRows[i]],9/1)
+    }
 
       p[i]*grMax[i]<-grDATA[i]
       #grDATA[i]~dnorm(gr[i],tauEps)

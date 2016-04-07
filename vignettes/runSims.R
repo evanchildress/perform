@@ -35,22 +35,27 @@ rivs<-c("wb jimmy")
 #rivs<-c("wb jimmy")
 
 totalSims<-length(opts)*length(maxes)*length(epses)*length(seas)*length(rivs)
+#deriving opt from simNum to break up simulations into more chunks
 
+#opt<-opts[simNum %% 3 +1]
+#tMax<-maxes[round((simNum+1)/3) %% 3 +1]
+#e<-epses[round((simNum+14.5)/30) %% 3 +1]
+
+tMax<-maxes[simNum %% 4 +1]
 for(opt in opts){
-  for(tMax in maxes){
-    for(r in rivs){
-      for(e in epses){
-        for(s in seas){
+  for(e in epses){
+#     for(tMax in maxes){
+#         for(s in seas){
+#           for(r in rivs){
           if(tMax<=opt){next}
 	  cat("starting iteration ",iter," of ",totalSims)
-          re<-pSim(tOpt=opt,ctMax=tMax,sigma=4,eps=e,seasonal=s,nYoy=50,river=r,modelFile="perform/model.txt")
+          re<-pSim(tOpt=opt,ctMax=tMax,sigma=4,eps=e,seasonal=s,nYoy=50,river=r,
+                   modelFile="perform/model.txt")
           results<-rbind(results,re)
 	  iter<-iter+1
-        }
-      }
-    }
   }
 }
+
 results$simNum<-simNum
 saveRDS(results,paste0("~/perform/output/pSim",simNum,".rds"))
 cat("sim ",simNum," complete at ",Sys.time())
