@@ -5,9 +5,10 @@
 #simulation setttings
 pSim<-function(tOpt,ctMax,sigma,eps,nYoy=60,seasonal=T,
                river,modelFile="model.txt"){
-  pSurv<-0.76
+  pSurv<-0.76^(1/3)
   if(!seasonal){pSurv<-pSurv^4}
-  pDetect<-0.6
+
+  pDetect<-1
 # tOpt<-15
 # ctMax<-20
 # sigma<-4
@@ -33,7 +34,7 @@ t[,performance:=predictPerformance(temperature,tOpt,ctMax,sigma)]
 if(seasonal){
   sampleDates<-data.table(date=seq(as.Date("2001-10-01"),
                                    as.Date("2016-01-01"),
-                                   by="quarter")) %>%
+                                   by="month")) %>%
     .[,season:=match(month(date),c(1,4,7,10))] %>%
     .[,sample:=1:nrow(.)] %>%
     setkey(sample)
@@ -132,7 +133,7 @@ if(seasonal){
   parsToSave<-c("tOpt","ctMax","sigma","beta1","beta2","eps")
 
   out<-fitModel(jagsData=jagsData,inits=inits,modelFile=modelFile,
-                parallel=T,nb=1,ni=2000,nt=1,params=parsToSave)
+                parallel=T,na=10000,nb=1,ni=2000,nt=1,params=parsToSave)
 
   res<-out$summary %>%
        data.table(keep.rownames=T) %>%
