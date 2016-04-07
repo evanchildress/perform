@@ -1,12 +1,26 @@
 library(perform)
 
 rivers<-c("wb jimmy","wb mitchell","wb obear","west brook")
+rivers<-"wb jimmy"
 for(r in rivers){
-  core<-wbLengths %>%
-    .[river==r] %>%
-    .[,tagIndex:=match(tag,unique(tag))] %>%
-    setkey(tagIndex,detectionDate) %>%
-    .[,firstObs:=detectionDate==min(detectionDate),by=tag]
+  core<-wbLengths%>%
+    data.frame() %>%
+    fillSizeLocation(size=F) %>%
+    filter(river==r) %>%
+    data.table() %>%
+    .[,diffSample:=c(NA,diff(sampleIndex)),by=tag]
+  movers<-unique(core[diffSample>1,tag])
+  for(t in movers){
+    core[tag==t&
+           sampleIndex %in%
+           sampleIndex[min(which(diffSample>1)):length(sampleIndex)],
+         observedLength:=NA]
+  }
+  core[,diffSample:=NULL]
+
+    # .[,tagIndex:=match(tag,unique(tag))] %>%
+    # setkey(tagIndex,detectionDate) %>%
+    # .[,firstObs:=detectionDate==min(detectionDate),by=tag]
 
   jagsData<-createJagsData(data.frame(core) %>% addEnvironmental()) %>%
     .[c("firstObsRows",
@@ -52,26 +66,33 @@ for(r in rivers){
                        by=.(obs)] %>%
     melt(id.vars=c("month","obs")) %>%
     acast(obs~month)
+#
+#   jagsData$time<-core$time<-list(lengthDATA=core$observedLength,
+#                  firstObsRows=which(core$firstObs==1),
+#                  nFirstObsRows=length(which(core$firstObs==1)),
+#                  evalRows=which(core$firstObs==0),
+#                  nEvalRows=length(which(core$firstObs==0)),
+#                  propMonth=propMonth,
+#                  tempDATA=t$temperature,
+#                  nTimes=nrow(t),
+#                  time=core$time,
+#                  nMonths=max(hoursPerMonth$month)
+#   )
+  jagsData$propMonth<-propMonth
+  jagsData$tempDATA<-t$temperature
+  jagsData$nTimes<-nrow(t)
+  jagsData$time<-core$time
+  jagsData$nMonths<-max(hoursPerMonth$month)
 
-  jagsData<-list(lengthDATA=core$length,
-                 firstObsRows=which(core$firstObs==1),
-                 nFirstObsRows=length(which(core$firstObs==1)),
-                 evalRows=which(core$firstObs==0),
-                 nEvalRows=length(which(core$firstObs==0)),
-                 propMonth=propMonth,
-                 tempDATA=t$temperature,
-                 nTimes=nrow(t),
-                 time=core$time,
-                 nMonths=max(hoursPerMonth$month)
-  )
 
 
 
-  createModelRandom()
+  createLengthModel()
 
   inits<-function(){list(ctMax=rnorm(1,20,0.5),
                          tOpt=rnorm(1,9,0.5),
-                         beta=c(0.015,-6e-05))
+                         beta1=0.015,
+                         beta=-6e-05)
   }
 
   out<-fitModel(jagsData=jagsData,inits=inits,parallel=T,nb=10000,ni=12000,nt=4)

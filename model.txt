@@ -53,7 +53,7 @@ model{
     }
 
     for(i in 1:nFirstObsRows){
-      length[firstObsRows[i]]~dnorm(83.5,0.001)
+      length[firstObsRows[i]]~dnorm(90,0.001)
       lengthDATA[firstObsRows[i]]~dnorm(length[firstObsRows[i]],9/1)
     }
     for(i in 1:nEvalRows){
