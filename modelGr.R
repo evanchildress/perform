@@ -13,7 +13,8 @@ model{
     beta2<-beta2Scaled/10000
 
     #variation on growth rate at tOpt
-    epsScaled~dnorm(0,1)T(0,100)
+    #epsScaled~dnorm(0,1)T(0,100)
+    epsScaled~dunif(0,100)
     eps<-epsScaled/10000
     #eps<-0.00000000001
     tauEpsScaled<-1/pow(epsScaled,2)

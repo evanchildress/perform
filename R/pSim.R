@@ -4,7 +4,7 @@
 
 #simulation setttings
 pSim<-function(tOpt,ctMax,sigma,eps,nYoy=60,seasonal=T,
-               river,modelFile="modelLength.R"){
+               river,modelFile="modelLength.R",returnRaw=F){
   pSurv<-0.76
   if(!seasonal){pSurv<-pSurv^4}
   pDetect<-0.6
@@ -133,6 +133,7 @@ if(seasonal){
 
   out<-fitModel(jagsData=jagsData,inits=inits,modelFile=modelFile,
                 parallel=T,nb=5000,ni=7000,nt=2,params=parsToSave)
+  if(returnRaw){return(out)}
 
   res<-out$summary %>%
        data.table(keep.rownames=T) %>%

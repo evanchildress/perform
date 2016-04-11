@@ -4,7 +4,7 @@
 
 #simulation setttings
 pSimGrowth<-function(tOpt,ctMax,sigma,eps,nYoy=60,seasonal=T,
-                     river,modelFile="modelGr.R"){
+                     river,modelFile="modelGr.R",returnRaw=F,nb=5000,ni=7000){
   pSurv<-0.76
   if(!seasonal){pSurv<-pSurv^4}
 
@@ -134,8 +134,8 @@ pSimGrowth<-function(tOpt,ctMax,sigma,eps,nYoy=60,seasonal=T,
   parsToSave<-c("tOpt","ctMax","sigma","beta1","beta2","eps")
 
   out<-fitModel(jagsData=jagsData,inits=inits,modelFile=modelFile,
-                parallel=T,na=500,nb=5000,ni=7000,nt=2,params=parsToSave)
-
+                parallel=T,na=500,nb=nb,ni=ni,nt=2,params=parsToSave)
+  if(returnRaw){return(out)}
   res<-out$summary %>%
     data.table(keep.rownames=T) %>%
     setnames(c("parameter","mean","sd","q2.5","q25",
