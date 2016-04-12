@@ -1,46 +1,16 @@
 model{
-    #performance parameters
-    maxAdd~dnorm(5,0.01)T(0,100)
-    ctMax<-maxAdd+tOpt
-    tOpt~dnorm(11,0.0001)T(0,100)
-    sigma~dunif(0,10)
+  b0~dnorm(0,0.01)
+  b1~dnorm(0,0.01)
+  sigma~dunif(0,30)
+  tau<-1/pow(sigma,2)
 
-    #maximum hourly growth rate (which is then scaled by the performance function)
-     #constant across the life span
-      # grMax~dunif(0,1)
-
-    #derivative of the von Bert is linear, intercept and slope(with length) of hourly growth rate
-    beta1~dnorm(0,10000)T(0,0.1)
-    beta2~dnorm(0,1000000000)T(-0.1,0)
-
-    #variation on growth rate at tOpt
-    #eps~dnorm(0,0.001)T(0,0.01)
-    eps<-0.00000000001
-    tauEps<-1/pow(eps,2)
-
-    for(i in 1:nObs){
-
-    }
-
-    for(t in 1:nTimes){
-      perf[t]<-ifelse(tempDATA[t]>tOpt,1-(((tempDATA[t])-tOpt)/(tOpt-ctMax))^2,
-                    exp(-((tempDATA[t]-tOpt)/(2*sigma))^2))
-    }
-    for(i in 1:nObs){
-
-
-    for(i in 1:nFirstObsRows){
-      length[firstObsRows[i]]~dnorm(90,0.001)
-      lengthDATA[firstObsRows[i]]~dnorm(length[firstObsRows[i]],9/1)
-    }
-    for(i in 1:nEvalRows){
-      grRate[evalRows[i]-1]~dnorm(grMax[evalRows[i]-1],tauEps)
-      gr[evalRows[i]-1]<-grRate[evalRows[i]-1]*p[evalRows[i]-1]
-      length[evalRows[i]]<-length[evalRows[i]-1]+gr[evalRows[i]-1]
-      lengthDATA[evalRows[i]]~dnorm(length[evalRows[i]],9/1)
-    }
-
-      p[i]*grMax[i]<-grDATA[i]
-      #grDATA[i]~dnorm(gr[i],tauEps)
-    }
+  # obsErr<-9
+  
+  for(i in 1:n){
+    yExp[i]<-b0+b1*x[i]
+    # err[i]~dnorm(0,tau)
+    y2[i]~dnorm(yExp[i],tau)
+    y[i]~dsum(y2[i])
+    resid[i]<-y[i]-yExp[i]
   }
+}

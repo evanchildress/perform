@@ -3,7 +3,7 @@
 #' @export
 
 #simulation setttings
-pSimGrowth<-function(tOpt,ctMax,sigma,eps,nYoy=60,seasonal=T,
+pSimGrowth<-function(tOpt,ctMax,sigma,eps,nYoy=60,seasonal=T,obsTau=10,
                      river,modelFile="modelGr.R",returnRaw=F,nb=5000,ni=7000){
   pSurv<-0.76
   if(!seasonal){pSurv<-pSurv^4}
@@ -63,9 +63,12 @@ pSimGrowth<-function(tOpt,ctMax,sigma,eps,nYoy=60,seasonal=T,
         min(c(core[tag==tg&!is.na(length),sample]+lastSample),
             max(sampleDates$sample))){
       startLength<-core[tag==tg&sample==s,length]
-      core[tag==tg&sample==s+1,length:=startLength+
-             rnorm(1,(beta1+startLength*beta2),eps)*
-             perf[sample==s,perf]]
+      err<-rnorm(1,0,eps)
+      core[tag==tg&sample==s+1,":="(
+        length=startLength+(beta1+startLength*beta2+err)*
+             perf[sample==s,perf],
+        noise=err)
+             ]
     }
   }
 
@@ -83,16 +86,13 @@ pSimGrowth<-function(tOpt,ctMax,sigma,eps,nYoy=60,seasonal=T,
     .[,N:=sum(!is.na(length)),by=tag] %>%
     .[N>1] %>%
     .[,N:=NULL] %>%
-    .[,':='(time=which.min(
-      abs(
-        t$datetime-as.POSIXct(paste0(date," 00:00:00"))
-      )
-    )),
-    by=.(tag,date)]
+    .[,':='(time=min(which(t$sample==sample))),by=sample]
+
   gr<-core[,.(growth=diff(length),
               startTime=time[1:(length(time)-1)],
-              endTime=time[2:length(time)],
+              endTime=time[2:length(time)]-1,
               startLength=length[1:(length(time)-1)]),by=tag]
+  gr[,noise:=core[!is.na(noise),noise]]
 
   # t[,month:=round((month(date)+1)/3)]
   # hoursPerMonth<-t[date>=as.Date("2003-01-01")&date<=as.Date("2014-12-31"),
@@ -123,15 +123,17 @@ pSimGrowth<-function(tOpt,ctMax,sigma,eps,nYoy=60,seasonal=T,
                  perfDuration=gr$endTime-gr$startTime,
                  endTime=gr$endTime,
                  startLength=gr$startLength
+                 #,obsTau=obsTau
   )
 
   #  createLengthModel()
   inits<-function(){list(beta1=0.015,
-                         beta2= -6e-05,
-                         tOpt=tOpt,
-                         ctMax=ctMax)}
-
-  parsToSave<-c("tOpt","ctMax","sigma","beta1","beta2","eps")
+                         beta2= -6e-05,)}
+# inits<-function(){list(grExp=gr$growth)}
+  parsToSave<-c("tOpt","ctMax","sigma","beta1","beta2","eps","resid","err","predicted")
+#
+#   bugs(jagsData,inits,parsToSave,"modelGr.bugs",
+#        n.iter=ni,n.burnin=nb,n.thin=nt,n.chains=nc)
 
   out<-fitModel(jagsData=jagsData,inits=inits,modelFile=modelFile,
                 parallel=T,na=500,nb=nb,ni=ni,nt=2,params=parsToSave)
