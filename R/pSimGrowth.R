@@ -128,12 +128,9 @@ pSimGrowth<-function(tOpt,ctMax,sigma,eps,nYoy=60,seasonal=T,obsTau=10,
 
   #  createLengthModel()
   inits<-function(){list(beta1=0.015,
-                         beta2= -6e-05,)}
+                         beta2= -6e-05)}
 # inits<-function(){list(grExp=gr$growth)}
   parsToSave<-c("tOpt","ctMax","sigma","beta1","beta2","eps","resid","err","predicted")
-#
-#   bugs(jagsData,inits,parsToSave,"modelGr.bugs",
-#        n.iter=ni,n.burnin=nb,n.thin=nt,n.chains=nc)
 
   out<-fitModel(jagsData=jagsData,inits=inits,modelFile=modelFile,
                 parallel=T,na=500,nb=nb,ni=ni,nt=2,params=parsToSave)
