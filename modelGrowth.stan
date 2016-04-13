@@ -1,22 +1,30 @@
+
+// would making the performance bit a function speed things up? If it could be vectorized it probably would
+// functions{
+//   real perform(real temp, real tOpt, real ctMax, real sigma){
+//
+//   }
+// }
+
 data{
   int<lower=0> nObs;
   int<lower=0> startTime[nObs];
   int<lower=0> perfDuration[nObs];
-  real<lower=0> startLength[nObs];
-  real gr[nObs];
+  vector<lower=0>[nObs] startLength;
+  vector[nObs] gr;
   int<lower=0> nTimes;
-  real temp[nTimes];
+  vector[nTimes] temp;
   real obsSigma;
 }
 
 parameters{
-  real<lower=0,upper=50> tOpt;
-  real<lower=0,upper=50> maxAdd;
+  real<lower=0,upper=30> tOpt;
+  real<lower=0,upper=20> maxAdd;
   real<lower=0,upper=10> sigma;
   real<lower=0,upper=0.1> beta1Scaled;
   real<lower=-0.1,upper=0> beta2Scaled;
   real<lower=0,upper=0.01> epsScaled;
-  real errScaled[nObs];
+  // real errScaled[nObs];
 }
 
 transformed parameters{
@@ -24,11 +32,9 @@ transformed parameters{
   real beta1;
   real beta2;
   real eps;
-  real err[nObs];
+  // real err[nObs];
   real perf[nTimes];
-  real p[nTimes];
-  real grMax[nObs];
-  real grExp[nObs];
+  vector[nTimes] p;
 
   ctMax<-tOpt+maxAdd;
 
@@ -36,30 +42,28 @@ transformed parameters{
   beta1<-beta1Scaled/100;
   beta2<-beta2Scaled/10000;
   eps<-epsScaled/10000;
-  for(i in 1:nObs){
-    err[i]<-errScaled[i]/10000;
-  }
 
   for(t in 1:nTimes){
     if(temp[t]>tOpt){
-      perf[t]<- 1-(((temp[t])-tOpt)/(tOpt-ctMax))^2;
+      perf[t]<- 1-pow(((temp[t])-tOpt)/(tOpt-ctMax),2);
     }
     else {
-      perf[t]<- exp(-((temp[t]-tOpt)/(2*sigma))^2);
+      perf[t]<- exp(-pow((temp[t]-tOpt)/(2*sigma),2));
     }
   }
 
   for(i in 1:nObs){
-    grMax[i]<-beta1+beta2*startLength[i]+err[i]; //von bert plus noise
+    // grExp[i]<-beta1+beta2*startLength[i]; //von bert = expected growth at tOpt
     p[i]<-sum(segment(perf,startTime[i],perfDuration[i])); //summed performance over growth period
-    grExp[i]<-p[i]*grMax[i];//expected growth rate
   }
 }
 
 model{
+  vector[nObs] grRate;
   for(i in 1:nObs){
-    ((gr[i]/p[i])*10000)~normal(grExp[i]*10000,epsScaled);
+    grRate[i]<-gr[i]/p[i]*10000;
   }
+  grRate~normal(beta1+beta2*startLength*10000,epsScaled);
 
   //priors
   maxAdd~normal(5,30);
@@ -71,3 +75,5 @@ model{
 
   epsScaled~normal(0,1e-5*10000);
 }
+
+
