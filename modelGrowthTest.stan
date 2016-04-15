@@ -18,26 +18,29 @@ data{
 }
 
 parameters{
-  // real<lower=0,upper=100> epsScaled;
-  real<lower=0,upper=0.01> eps;
-  real<lower=0,upper=0.1> beta1;
-  real<lower=-0.001,upper=0> beta2;
   real<lower=0,upper=30> tOpt;
+  real<lower=0,upper=30> maxAdd;
+  real<lower=0,upper=10> sigma;
+  real<lower=0,upper=0.01*1000> epsScaled;
+  real<lower=0> beta1Scaled;
+  real<upper=0> beta2Scaled;
+
 }
 
 transformed parameters{
-  // real eps;
+  real ctMax;
 
   real perf[nTimes];
   vector[nTimes] p;
 
+  ctMax<-tOpt+maxAdd;
 
   for(t in 1:nTimes){
     if(temp[t]>tOpt){
-      perf[t]<- 1-pow(((temp[t])-tOpt)/(tOpt-18),2);
+      perf[t]<- 1-pow(((temp[t])-tOpt)/(tOpt-ctMax),2);
     }
     else {
-      perf[t]<- exp(-pow((temp[t]-tOpt)/(2*4),2));
+      perf[t]<- exp(-pow((temp[t]-tOpt)/(2*sigma),2));
     }
   }
 
@@ -51,22 +54,26 @@ model{
 
   vector[nObs] grRate;
   for(i in 1:nObs){
-    grRate[i]<-gr[i]/p[i];
+    grRate[i]<-gr[i]/p[i]*1000;//daily growth rate
   }
-  grRate~normal(beta1+beta2*startLength,eps);
+  grRate~normal(beta1Scaled+beta2Scaled*startLength,epsScaled);
 
   //priors
-  // maxAdd~normal(5,30);
-  // tOpt~normal(11,30);
-  // sigma~uniform(0,10);
-  //
-  // beta1Scaled~normal(0,0.01*100);
-  // beta2Scaled~normal(0,3e-5*10000);
-
-  // epsScaled~normal(0,1e-5*10000);
-  eps~normal(0,0.01);
-  beta1~normal(0,0.1);
-  beta2~normal(0,0.001);
+  maxAdd~normal(5,30);
   tOpt~normal(15,10);
+  sigma~uniform(0,10);
+
+  beta1Scaled~normal(0,15);
+  beta2Scaled~normal(0,6e-5*2000);
+  epsScaled~normal(0,0.0015*2000);
+}
+
+generated quantities{
+  real beta1;
+  real beta2;
+  real eps;
+  beta1<-beta1Scaled/1000;
+  beta2<-beta2Scaled/1000;
+  eps<-epsScaled/1000;
 }
 
