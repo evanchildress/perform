@@ -1,3 +1,5 @@
+runStan<-function(){
+library(rstan)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
@@ -161,6 +163,8 @@ inits<-function(){list(tOpt=rnorm(1,14,1),
   out<-stan(file="modelGrowthTest.stan",data=stanData,pars=parsToMonitor,
           chains=3,iter=200,warmup=150,thin=1,init=inits,
           control=list(adapt_delta=0.999))
+  return(out)
+}
 
 
 

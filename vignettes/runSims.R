@@ -13,7 +13,7 @@ simNum<- Sys.getenv('SLURM_ARRAY_TASK_ID') %>% as.numeric()
 #set random seed based on simNum because all iterations were returning identical results
 set.seed(simNum)
 
-source("perform/pSimGrowth.R")
+source("perform/pSim.R")
 source("perform/fitModel.R")
 source("perform/predictPerformance.R")
 
@@ -54,7 +54,7 @@ for(opt in opts){
 	  re$modelIndex<-which(opt==opts)*which(tMax==maxes)*which(e==epses)*which(s==seas)
           results<-rbind(results,re)
 	  iter<-iter+1
-	  
+
   }
 }
 }

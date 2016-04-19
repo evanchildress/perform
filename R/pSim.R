@@ -129,12 +129,15 @@ if(seasonal){
 
 #  createLengthModel()
   inits<-function(){list(lengthDATA=lengthInit,
-                         beta1=abs(rnorm(1,0,0.1)),
-                         beta2=-abs(rnorm(1,0,0.01)),
-                         eps=abs(rnorm(1,0,0.001)),
-                         tOpt=rnorm(1,11,5),
-                         maxAdd=runif(1,0,10),
-                         sigma=runif(1,0,10))}
+                         beta1=0.015,
+                         beta2=-6e-5,
+                         eps=0.0015,
+                         tOpt=15,
+                         maxAdd=5,
+                         sigma=4)}
+  inits<-function(){list(lengthDATA=lengthInit
+                         )
+  }
 
   parsToSave<-c("tOpt","ctMax","sigma","beta1","beta2","eps")
 
