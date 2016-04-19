@@ -28,11 +28,12 @@ parameters{
 }
 
 transformed parameters{
+
   real ctMax;
 
   real perf[nTimes];
   vector[nTimes] p;
-
+  vector[nObs] perfInd;
   ctMax<-tOpt+maxAdd;
 
   for(t in 1:nTimes){
@@ -43,39 +44,51 @@ transformed parameters{
       perf[t]<- exp(-pow((temp[t]-tOpt)/(2*sigma),2));
     }
   }
+  // for(t in 1:nTimes){
+  //   perf[t]<-exp(-pow((temp[t]-tOpt)/(2*sigma),2));
+  // }
 
   for(g in 1:nGrPeriods){
     // p[g]<-sum(segment(perf,startTime[g],perfDuration[g])); //summed performance over growth period
     p[g]<-sum(perf[startTime[g]:endTime[g]]);
   }
+
+  perfInd<-p[grPeriod];
 }
 
 model{
+  vector[nObs] epsObs;
+  vector[nObs] grExp;
 
-  vector[nObs] grRate;
+  // vector[nObs] grRate;
 //   for(i in 1:nObs){
 //     grRate[i]<-gr[i]/p[grPeriod[i]]*1000;
 //   }
-  grRate<-gr ./ p[grPeriod]*1000;
+  // grRate<-(gr ./ p[grPeriod])*1000;
 
-  grRate~normal(beta1Scaled+beta2Scaled*startLength,epsScaled);
+  for(i in 1:nObs){
+    epsObs[i]<-fabs(epsScaled*perfInd[i]);
+  }
+  grExp<-(beta1Scaled+beta2Scaled*startLength) .* perfInd;
+
+  (gr)~normal(grExp,epsObs);
 
   //priors
-  maxAdd~normal(5,30);
-  tOpt~normal(15,10);
+  // maxAdd~normal(5,2);
+  tOpt~normal(15,3);
   sigma~uniform(0,10);
 
-  beta1Scaled~normal(0,15);
-  beta2Scaled~normal(0,6e-5*2000);
-  epsScaled~normal(0,0.0015*2000);
+  beta1Scaled~normal(0,15/1000);
+  beta2Scaled~normal(0,6e-5*2);
+  epsScaled~normal(0,0.0015*2);
 }
 
 generated quantities{
   real beta1;
   real beta2;
   real eps;
-  beta1<-beta1Scaled/1000;
-  beta2<-beta2Scaled/1000;
-  eps<-epsScaled/1000;
+  beta1<-beta1Scaled/1;
+  beta2<-beta2Scaled/1;
+  eps<-epsScaled/1;
 }
 
