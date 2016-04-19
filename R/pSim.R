@@ -4,7 +4,8 @@
 
 #simulation setttings
 pSim<-function(tOpt,ctMax,sigma,eps,nYoy=60,seasonal=T,
-               river,modelFile="modelLength.R",returnRaw=F){
+               river,modelFile="modelLength.R",returnRaw=F,
+               ni=7000,nb=5000){
   pSurv<-0.76
   if(!seasonal){pSurv<-pSurv^4}
   pDetect<-0.6
@@ -123,16 +124,25 @@ if(seasonal){
                  nMonths=max(hoursPerMonth$month)
                  )
 
+  lengthInit<-approx(core$length,n=length(core$length))$y
+  lengthInit[!is.na(core$length)]<-NA
+
 #  createLengthModel()
-  inits<-function(){list(beta1=0.015,
-                         beta2= -6e-05,
-                         tOpt=tOpt,
-                         ctMax=ctMax)}
+  inits<-function(){list(lengthDATA=lengthInit,
+                         beta1=0.015,
+                         beta2=-6e-5,
+                         eps=0.0015,
+                         tOpt=15,
+                         maxAdd=5,
+                         sigma=4)}
+  inits<-function(){list(lengthDATA=lengthInit
+                         )
+  }
 
   parsToSave<-c("tOpt","ctMax","sigma","beta1","beta2","eps")
 
   out<-fitModel(jagsData=jagsData,inits=inits,modelFile=modelFile,
-                parallel=T,nb=5000,ni=7000,nt=2,params=parsToSave)
+                parallel=T,nb=nb,ni=ni,nt=1,params=parsToSave)
   if(returnRaw){return(out)}
 
   res<-out$summary %>%

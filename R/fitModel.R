@@ -17,7 +17,7 @@ fitModel<-function(ni=11000,
             "sigmaInd","ranMonth","sigmaMonth")
   }
 
-  out<-jags(data=jagsData,inits=NULL,params,modelFile,n.adapt=na,n.chains=nc,n.iter=ni,
+  out<-jags(data=jagsData,inits=inits,params,modelFile,n.adapt=na,n.chains=nc,n.iter=ni,
             n.thin=nt,n.burnin=nb,parallel=parallel,...)
   return(out)
 }

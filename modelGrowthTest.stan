@@ -74,7 +74,8 @@ model{
   (gr)~normal(grExp,epsObs);
 
   //priors
-  // maxAdd~normal(5,2);
+
+  maxAdd~normal(5,2);
   tOpt~normal(15,3);
   sigma~uniform(0,10);
 

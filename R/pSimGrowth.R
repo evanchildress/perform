@@ -3,7 +3,7 @@
 #' @export
 
 #simulation setttings
-pSimGrowth<-function(tOpt,ctMax,sigma,eps,nYoy=60,seasonal=T,obsTau=10,
+pSimGrowth<-function(tOpt,ctMax,sigma,eps,nYoy=60,seasonal=T,
                      river,modelFile="modelGr.R",returnRaw=F,nb=5000,ni=7000){
   pSurv<-0.76
   if(!seasonal){pSurv<-pSurv^4}
@@ -130,10 +130,10 @@ pSimGrowth<-function(tOpt,ctMax,sigma,eps,nYoy=60,seasonal=T,obsTau=10,
   inits<-function(){list(beta1=0.015,
                          beta2= -6e-05)}
 # inits<-function(){list(grExp=gr$growth)}
-  parsToSave<-c("tOpt","ctMax","sigma","beta1","beta2","eps","resid","err","predicted")
+  parsToSave<-c("tOpt","ctMax","sigma","beta1","beta2","eps")
 
-  out<-fitModel(jagsData=jagsData,inits=inits,modelFile=modelFile,
-                parallel=T,na=500,nb=nb,ni=ni,nt=2,params=parsToSave)
+  out<-fitModel(jagsData=jagsData,inits=NULL,modelFile=modelFile,
+                parallel=T,na=500,nb=nb,ni=ni,nt=1,params=parsToSave)
   if(returnRaw){return(out)}
   res<-out$summary %>%
     data.table(keep.rownames=T) %>%
