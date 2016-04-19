@@ -151,14 +151,16 @@ stanData<-list(gr=gr$growth,
 parsToMonitor<-c("tOpt","ctMax","beta1","beta2","eps","sigma")
 #parsToMonitor<-c("tOpt","eps","ctMax","beta2")
 
-inits<-function(){list(tOpt=14,
-                       maxAdd=4,
-                       sigma=4,
-                       epsScaled=0.0015*1000,
-                       beta1Scaled=0.015*1000,
-                       beta2Scaled= -6e-5*1000)}
+inits<-function(){list(tOpt=rnorm(1,14,1),
+                       maxAdd=rnorm(1,4,1),
+                       sigma=rnorm(1,4,1),
+                       epsScaled=rnorm(1,0.0015,0.0001)*1000,
+                       beta1Scaled=rnorm(1,0.015,0.001)*1000,
+                       beta2Scaled= rnorm(1,-6e-5,1e-5)*1000)}
 
   out<-stan(file="modelGrowthTest.stan",data=stanData,pars=parsToMonitor,
           chains=3,iter=200,warmup=150,thin=1,init=inits,
-          control=list(adapt_delta=0.8))
+          control=list(adapt_delta=0.999))
+
+
 

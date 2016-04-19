@@ -3,22 +3,14 @@ model{
   #performance parameters
   maxAdd~dnorm(5,0.001)T(0,100)
   ctMax<-maxAdd+tOpt
-  tOpt~dnorm(11,0.0001)T(0,100)
+  tOpt~dnorm(11,0.001)T(0,100)
   sigma~dunif(0,10)
 
   #derivative of the von Bert is linear, intercept and slope(with length) of hourly growth rate
-  beta1Scaled~dnorm(0,1)T(0,10)
-  beta1<-beta1Scaled/100
+  beta1~dnorm(0,100)T(0,)
+  beta2~dnorm(0,1000)T(,0)
 
-  beta2Scaled~dnorm(0,1)T(-1,0)
-  beta2<-beta2Scaled/10000
-
-  #variation on growth rate at tOpt
-  epsScaled~dnorm(0,1)T(0,100)
-  eps<-epsScaled/10000
-  #eps<-0.00000000001
-  tauEpsScaled<-1/pow(epsScaled,2)
-
+  eps~dunif(0,0.1)
     # #individual random effect on grMax
     #    for(f in 1:nInd){
     #      ranInd[f]~dnorm(0,tauInd)
@@ -46,25 +38,20 @@ model{
     }
 
   for(i in 1:nFirstObsRows){
-    length[firstObsRows[i]]~dnorm(83.5,0.001)
-    lengthDATA[firstObsRows[i]]~dnorm(length[firstObsRows[i]],10)
+    lengthDATA[firstObsRows[i]]~dnorm(83.5,0.001)
   }
 
-    for(i in 1:nEvalRows){
-      errScaled[i]~dnorm(0,tauEpsScaled)#variation on growth at tOpt
-      err[i]<-errScaled[i]/10000
 
+
+    for(i in 1:nEvalRows){
       p[evalRows[i]-1]<-sum(perf[time[evalRows[i]-1]:time[evalRows[i]]])
 
-      grMax[evalRows[i]-1]<-beta1+beta2*length[evalRows[i]-1]+err[i] #von bert
+      grExp[evalRows[i]-1]<-(beta1+beta2*lengthDATA[evalRows[i]-1])*p[evalRows[i]-1] #von bert
                 #+monthEffect[evalRows[i]-1] #random month effect
                 #+ranInd[ind[i]] #random individual effect
                 #+densityEffect[i] #density effect
 
 
-      gr[evalRows[i]-1]<-grMax[evalRows[i]-1]*p[evalRows[i]-1]
-
-      length[evalRows[i]]<-length[evalRows[i]-1]+gr[evalRows[i]-1]
-      lengthDATA[evalRows[i]]~dnorm(length[evalRows[i]],10)
+      lengthDATA[evalRows[i]]~dnorm(lengthDATA[evalRows[i]-1]+grExp[evalRows[i]-1],eps*p[evalRows[i]-1])
     }
 }

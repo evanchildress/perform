@@ -61,8 +61,8 @@ model{
   grRate~normal(beta1Scaled+beta2Scaled*startLength,epsScaled);
 
   //priors
-  maxAdd~normal(5,30);
-  tOpt~normal(15,10);
+  maxAdd~normal(5,2);
+  tOpt~normal(15,3);
   sigma~uniform(0,10);
 
   beta1Scaled~normal(0,15);
