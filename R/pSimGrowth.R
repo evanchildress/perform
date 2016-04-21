@@ -6,6 +6,11 @@
 pSimGrowth<-function(tOpt,ctMax,sigma,eps,sampleFreq="annual",
                      river="wb jimmy",modelFile="modelGr.R",
                      returnRaw=F,nb=5000,ni=7000){
+
+  controls<-list(annual=list(nYoy=60,
+                             pSurv=0.76^4,
+                             startDate=as.Date("2001-10-01"),
+                             endDate=as.Date("2016-01-01")))
   nYoy<-c(60,60,10,60)[
     which(sampleFreq==c("annual","seasonal","monthly","daily"))]
   pSurv<-c(0.76^4,0.76,0.76^(1/3),0.76^(1/91.25))[
@@ -33,6 +38,8 @@ pSimGrowth<-function(tOpt,ctMax,sigma,eps,sampleFreq="annual",
     setkey(datetime)
 
   t[,performance:=predictPerformance(temperature,tOpt,ctMax,sigma)]
+
+
 
   if(sampleFreq=="annual") {
     sampleDates<-data.table(date=seq(as.Date("2001-10-01"),
@@ -68,7 +75,7 @@ pSimGrowth<-function(tOpt,ctMax,sigma,eps,sampleFreq="annual",
 
   perf<-t[,.(perf=sum(performance)),by=sample]
 
-  core<-data.table(sample=rep(sampleDates[season==4,sample],each=nYoy)) %>%
+  core<-data.table(sample=rep(sampleDates[month(date)==10&mday(date)==1,sample],each=nYoy)) %>%
     .[,length:=rnorm(nrow(.),80,6)] %>%
     .[,tag:=1:nrow(.)] %>%
     setkey(sample) %>%
