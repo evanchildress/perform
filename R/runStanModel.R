@@ -4,8 +4,8 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
 nYoy<-60
-tOpt<-14
-ctMax<-18
+tOpt<-16
+ctMax<-20
 sigma<-4
 eps<-0.0015
 seasonal=T
@@ -161,10 +161,12 @@ inits<-function(){list(tOpt=rnorm(1,14,1),
                        beta2Scaled= rnorm(1,-6e-5,1e-5)*1000)}
 
   out<-stan(file="modelGrowthTest.stan",data=stanData,pars=parsToMonitor,
-          chains=3,iter=200,warmup=150,thin=1,init=inits,
-          control=list(adapt_delta=0.999))
+          chains=3,iter=750,thin=1,init="random",
+          control=list(adapt_delta=0.8))
   return(out)
 }
 
 
+  # out<-stan(file="modelGrowthTest.stan",data=stanData,pars=parsToMonitor,
+  #           chains=5,thin=1,init=inits,test_grad=T)
 
