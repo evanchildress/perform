@@ -3,10 +3,18 @@
 #' @export
 
 #simulation setttings
-pSimGrowth<-function(tOpt,ctMax,sigma,eps,nYoy=60,seasonal=T,
-                     river,modelFile="modelGr.R",returnRaw=F,nb=5000,ni=7000){
-  pSurv<-0.76
-  if(!seasonal){pSurv<-pSurv^4}
+pSimGrowth<-function(tOpt,ctMax,sigma,eps,sampleFreq="annual",
+                     river="wb jimmy",modelFile="modelGr.R",
+                     returnRaw=F,nb=5000,ni=7000){
+
+  controls<-list(annual=list(nYoy=60,
+                             pSurv=0.76^4,
+                             startDate=as.Date("2001-10-01"),
+                             endDate=as.Date("2016-01-01")))
+  nYoy<-c(60,60,10,60)[
+    which(sampleFreq==c("annual","seasonal","monthly","daily"))]
+  pSurv<-c(0.76^4,0.76,0.76^(1/3),0.76^(1/91.25))[
+    which(sampleFreq==c("annual","seasonal","monthly","daily"))]
 
   pDetect<-1
   # tOpt<-15
@@ -31,18 +39,34 @@ pSimGrowth<-function(tOpt,ctMax,sigma,eps,nYoy=60,seasonal=T,
 
   t[,performance:=predictPerformance(temperature,tOpt,ctMax,sigma)]
 
-  if(seasonal){
+
+
+  if(sampleFreq=="annual") {
     sampleDates<-data.table(date=seq(as.Date("2001-10-01"),
+                                     as.Date("2016-01-01"),
+                                     by="year")) %>%
+      .[,season:=4] %>%
+      .[,sample:=1:nrow(.)] %>%
+      setkey(sample)
+  } else if(sampleFreq=="seasonal"){
+    sampleDates<-data.table(date=seq(as.Date("2001-10-01"),
+                                     as.Date("2016-01-01"),
+                                     by="quarter")) %>%
+      .[,season:=match(month(date),c(1,4,7,10))] %>%
+      .[,sample:=1:nrow(.)] %>%
+      setkey(sample)
+  } else if(sampleFreq=="monthly"){
+    sampleDates<-data.table(date=seq(as.Date("2007-10-01"),
                                      as.Date("2016-01-01"),
                                      by="month")) %>%
       .[,season:=match(month(date),c(1,4,7,10))] %>%
       .[,sample:=1:nrow(.)] %>%
       setkey(sample)
-  } else {
-    sampleDates<-data.table(date=seq(as.Date("2001-10-01"),
-                                     as.Date("2016-01-01"),
-                                     by="year")) %>%
-      .[,season:=4] %>%
+  } else if(sampleFreq=="daily"){
+    sampleDates<-data.table(date=seq(as.Date("2007-10-01"),
+                                     as.Date("2008-09-30"),
+                                     by="day")) %>%
+      .[,season:=match(month(date),c(1,4,7,10))] %>%
       .[,sample:=1:nrow(.)] %>%
       setkey(sample)
   }
@@ -51,13 +75,13 @@ pSimGrowth<-function(tOpt,ctMax,sigma,eps,nYoy=60,seasonal=T,
 
   perf<-t[,.(perf=sum(performance)),by=sample]
 
-  core<-data.table(sample=rep(sampleDates[season==4,sample],each=nYoy)) %>%
+  core<-data.table(sample=rep(sampleDates[month(date)==10&mday(date)==1,sample],each=nYoy)) %>%
     .[,length:=rnorm(nrow(.),80,6)] %>%
     .[,tag:=1:nrow(.)] %>%
     setkey(sample) %>%
     .[,.SD[sampleDates],by=tag]
   for(tg in 1:max(core$tag)){
-    surv<-rbinom(20,1,pSurv)
+    surv<-rbinom(365,1,pSurv)
     lastSample<-max(c(suppressWarnings(min(which(surv==0)))-1,1))
     for(s in core[tag==tg&!is.na(length),min(sample)]:
         min(c(core[tag==tg&!is.na(length),sample]+lastSample),
@@ -142,7 +166,7 @@ pSimGrowth<-function(tOpt,ctMax,sigma,eps,nYoy=60,seasonal=T,
     .[parameter %in% parsToSave[1:(length(parsToSave))],
       .(parameter,mean,q2.5,q50,q97.5,rHat)]
   res$trueValue<-unlist(mget(parsToSave[1:(length(parsToSave))]))
-  res$seasonal<-seasonal
+  res$sampleFreq<-sampleFreq
   res$nObs<-nrow(core[!is.na(length)])-length(unique(core$tag))
   res$riverTemp<-r
 

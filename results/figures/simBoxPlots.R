@@ -1,5 +1,6 @@
 library(perform)
 library(plotHacks)
+
 res<-readRDS("results/pSimResults.rds") %>%
   data.table() %>%
   .[,index:=rep(1:(nrow(.)/6),each=6)] %>%
@@ -20,3 +21,4 @@ boxplot(mean~trueValue+tOpt,data=res[parameter=="ctMax"&converged==T&seasonal==T
 boxplot(mean~trueValue+tOpt,data=res[parameter=="ctMax"&converged==T&seasonal==T&eps==0.0015],main="eps = 10%")
 boxplot(mean~trueValue+tOpt,data=res[parameter=="ctMax"&converged==T&seasonal==T&eps==0.003],main="eps = 20%")
 dev.off()
+
