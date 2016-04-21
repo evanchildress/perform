@@ -47,11 +47,13 @@ for(opt in opts){
 #     for(tMax in maxes){
          for(s in seas){
 #           for(r in rivs){
-          if(tMax<=opt){next}
+          if(tMax<=opt){
+            iter<-iter+1
+            next}
 	  cat("starting iteration ",iter," of ",totalSims)
           re<-pSimGrowth(tOpt=opt,ctMax=tMax,sigma=4,eps=e,seasonal=s,nYoy=50,river=r,
                    modelFile="perform/modelGr.R")
-	  re$modelIndex<-which(opt==opts)*which(tMax==maxes)*which(e==epses)*which(s==seas)
+	  re$modelIndex<-iter
           results<-rbind(results,re)
 	  iter<-iter+1
 
