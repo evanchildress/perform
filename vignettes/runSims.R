@@ -13,7 +13,7 @@ simNum<- Sys.getenv('SLURM_ARRAY_TASK_ID') %>% as.numeric()
 #set random seed based on simNum because all iterations were returning identical results
 set.seed(simNum)
 
-source("perform/pSim.R")
+source("perform/pSimGrowth.R")
 source("perform/fitModel.R")
 source("perform/predictPerformance.R")
 
@@ -21,10 +21,10 @@ results<-NULL
 iter<-1
 
 #simulation settings
-opts<-c(10,15,20)
-maxes<-c(16,20,24,27)
-epses<-c(0.00075,0.0015,0.003)
-seas<-c(T,F)
+opts<-c(8.5,13,16.5,19)
+maxes<-c(17.5,20.5,23.5,26.5)
+epses<-c(0.000375,0.00075,0.0015)
+freq<-c("annual","seasonal","monthly","daily")
 r<-c("wb jimmy")
 
 #fewer sims for testing
@@ -51,10 +51,10 @@ for(opt in opts){
             iter<-iter+1
             next}
 	  cat("starting iteration ",iter," of ",totalSims)
-          re<-pSimGrowth(tOpt=opt,ctMax=tMax,sigma=4,eps=e,seasonal=s,nYoy=50,river=r,
+          re<-pSimGrowth(tOpt=opt,ctMax=tMax,sigma=4,eps=e,sampleFreq=f,river=r,
                    modelFile="perform/modelGr.R")
 	  re$modelIndex<-iter
-          results<-rbind(results,re)
+    results<-rbind(results,re)
 	  iter<-iter+1
 
   }
@@ -62,4 +62,4 @@ for(opt in opts){
 }
 results$simNum<-simNum
 saveRDS(results,paste0("~/perform/output/pSim",simNum,".rds"))
-cat("sim ",simNum," complete at ",Sys.time())
+print(paste("sim ",simNum," complete at ",Sys.time()))
