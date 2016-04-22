@@ -5,16 +5,29 @@
 #simulation setttings
 pSimGrowth<-function(tOpt,ctMax,sigma,eps,sampleFreq="annual",
                      river="wb jimmy",modelFile="modelGr.R",
-                     returnRaw=F,nb=5000,ni=7000){
+                     returnRaw=F,na=500,nb=5000,ni=7000,parallel=T){
 
   controls<-list(annual=list(nYoy=60,
-                             pSurv=0.76^4,
+                             pSurv=0.76^(4/1),
                              startDate=as.Date("2001-10-01"),
-                             endDate=as.Date("2016-01-01")))
-  nYoy<-c(60,60,10,60)[
-    which(sampleFreq==c("annual","seasonal","monthly","daily"))]
-  pSurv<-c(0.76^4,0.76,0.76^(1/3),0.76^(1/91.25))[
-    which(sampleFreq==c("annual","seasonal","monthly","daily"))]
+                             endDate=as.Date("2016-01-01"),
+                             by="year"),
+                 seasonal=list(nYoy=60,
+                             pSurv=0.76,
+                             startDate=as.Date("2001-10-01"),
+                             endDate=as.Date("2016-01-01"),
+                             by="quarter"),
+                 monthly=list(nYoy=40,
+                             pSurv=0.76^(4/12),
+                             startDate=as.Date("2007-10-01"),
+                             endDate=as.Date("2016-01-01"),
+                             by="month"),
+                 daily=list(nYoy=15,
+                             pSurv=0.76^(4/365),
+                             startDate=as.Date("2007-10-01"),
+                             endDate=as.Date("2008-09-30"),
+                             by="day"))
+
 
   pDetect<-1
   # tOpt<-15
@@ -34,54 +47,30 @@ pSimGrowth<-function(tOpt,ctMax,sigma,eps,sampleFreq="annual",
   t<-temp %>%
     .[river==r] %>%
     .[,date:=as.Date(datetime)]%>%
-    .[date>as.Date("2001-09-30")] %>%
+    .[date>=controls[[sampleFreq]]$startDate] %>%
     setkey(datetime)
 
   t[,performance:=predictPerformance(temperature,tOpt,ctMax,sigma)]
 
 
-
-  if(sampleFreq=="annual") {
-    sampleDates<-data.table(date=seq(as.Date("2001-10-01"),
-                                     as.Date("2016-01-01"),
-                                     by="year")) %>%
-      .[,season:=4] %>%
+  sampleDates<-data.table(date=seq(controls[[sampleFreq]]$startDate,
+                                   controls[[sampleFreq]]$endDate,
+                                   by=controls[[sampleFreq]]$by)) %>%
       .[,sample:=1:nrow(.)] %>%
       setkey(sample)
-  } else if(sampleFreq=="seasonal"){
-    sampleDates<-data.table(date=seq(as.Date("2001-10-01"),
-                                     as.Date("2016-01-01"),
-                                     by="quarter")) %>%
-      .[,season:=match(month(date),c(1,4,7,10))] %>%
-      .[,sample:=1:nrow(.)] %>%
-      setkey(sample)
-  } else if(sampleFreq=="monthly"){
-    sampleDates<-data.table(date=seq(as.Date("2007-10-01"),
-                                     as.Date("2016-01-01"),
-                                     by="month")) %>%
-      .[,season:=match(month(date),c(1,4,7,10))] %>%
-      .[,sample:=1:nrow(.)] %>%
-      setkey(sample)
-  } else if(sampleFreq=="daily"){
-    sampleDates<-data.table(date=seq(as.Date("2007-10-01"),
-                                     as.Date("2008-09-30"),
-                                     by="day")) %>%
-      .[,season:=match(month(date),c(1,4,7,10))] %>%
-      .[,sample:=1:nrow(.)] %>%
-      setkey(sample)
-  }
 
   t[,sample:=sum(date>=sampleDates$date),by=date]
 
   perf<-t[,.(perf=sum(performance)),by=sample]
 
-  core<-data.table(sample=rep(sampleDates[month(date)==10&mday(date)==1,sample],each=nYoy)) %>%
+  core<-data.table(sample=rep(sampleDates[month(date)==10&mday(date)==1,sample],
+                              each=controls[[sampleFreq]]$nYoy)) %>%
     .[,length:=rnorm(nrow(.),80,6)] %>%
     .[,tag:=1:nrow(.)] %>%
     setkey(sample) %>%
     .[,.SD[sampleDates],by=tag]
   for(tg in 1:max(core$tag)){
-    surv<-rbinom(365,1,pSurv)
+    surv<-rbinom(365,1,controls[[sampleFreq]]$pSurv)
     lastSample<-max(c(suppressWarnings(min(which(surv==0)))-1,1))
     for(s in core[tag==tg&!is.na(length),min(sample)]:
         min(c(core[tag==tg&!is.na(length),sample]+lastSample),
@@ -157,7 +146,7 @@ pSimGrowth<-function(tOpt,ctMax,sigma,eps,sampleFreq="annual",
   parsToSave<-c("tOpt","ctMax","sigma","beta1","beta2","eps")
 
   out<-fitModel(jagsData=jagsData,inits=NULL,modelFile=modelFile,
-                parallel=T,na=500,nb=nb,ni=ni,nt=1,params=parsToSave)
+                parallel=parallel,na=na,nb=nb,ni=ni,nt=1,params=parsToSave)
   if(returnRaw){return(out)}
   res<-out$summary %>%
     data.table(keep.rownames=T) %>%
