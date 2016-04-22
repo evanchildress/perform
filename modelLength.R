@@ -1,9 +1,9 @@
 model{
 
   #performance parameters
-  maxAdd~dnorm(5,0.001)T(0,100)
+  maxAdd~dnorm(5,0.01)T(0,50)
   ctMax<-maxAdd+tOpt
-  tOpt~dnorm(11,0.001)T(0,100)
+  tOpt~dnorm(11,0.01)T(0,50)
   sigma~dunif(0,10)
 
   #derivative of the von Bert is linear, intercept and slope(with length) of hourly growth rate
@@ -37,9 +37,9 @@ model{
                     exp(-((tempDATA[t]-tOpt)/(2*sigma))^2))
     }
 
-  for(i in 1:nFirstObsRows){
-    lengthDATA[firstObsRows[i]]~dnorm(83.5,0.001)
-  }
+  # for(i in 1:nFirstObsRows){
+  #   lengthDATA[firstObsRows[i]]~dnorm(83.5,0.001)
+  # }
 
 
 
