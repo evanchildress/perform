@@ -52,7 +52,7 @@ for(opt in opts){
             next}
 	  cat("starting iteration ",iter," of ",totalSims)
           re<-pSimGrowth(tOpt=opt,ctMax=tMax,sigma=4,eps=e,sampleFreq=f,river=r,
-                   modelFile="perform/modelGr.R")
+                   nb=8000,ni=10000,modelFile="perform/modelGr.R")
 	  re$modelIndex<-iter
     results<-rbind(results,re)
 	  iter<-iter+1
