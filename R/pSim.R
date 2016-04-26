@@ -29,7 +29,7 @@ pSim<-function(tOpt,ctMax,sigma,eps,sampleFreq="annual",
                             by="day"))
 
 
-  pDetect<-1
+  pDetect<-0.8
   # tOpt<-15
   # ctMax<-20
   # sigma<-4
@@ -140,9 +140,9 @@ pSim<-function(tOpt,ctMax,sigma,eps,sampleFreq="annual",
 
 #  createLengthModel()
   inits<-function(){list(lengthDATA=lengthInit,
-                         beta1=0.015,
-                         beta2=-6e-5,
-                         eps=0.0015,
+                         beta1=rnorm(1,0.015,0.01),
+                         beta2=rnorm(1,-6e-5,1e-5),
+                         eps=rnorm(1,0.0015,0.0001),
                          tOpt=15,
                          maxAdd=5,
                          sigma=4)}
