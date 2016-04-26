@@ -28,4 +28,4 @@ biomass<-abundance[meanWeight] %>%
   .[,totalBiomass:=yoy+adults]
 
 
-saveRDS("vignettes/biomass.rds")
+saveRDS(biomass,"vignettes/westBrook/biomass.rds")
