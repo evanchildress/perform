@@ -6,12 +6,10 @@ dat<-createCoreData("electrofishing",columnsToAdd = c("river","observedWeight","
   data.table() %>%
   .[,stage:=as.numeric(cohort!=round(year+season/3.9)-1)+1]
 
-
-
 meanWeight<-dat[,.(meanWeight=mean(observedWeight,na.rm=T)),.(river,year,season,stage)] %>%
   setkey(river,year,season,stage)
 
-abundance<-readRDS("C:/Users/echildress/downloads/bktAdultAlive.rds") %>%
+abundance<-readRDS("C:/Users/Evan/Desktop/Conte/trout_yoy/cjsInputs/bktAdultAlive.rds") %>%
   .[,":="(river=as.numeric(river),
           season=as.numeric(season),
           year=as.numeric(year)+1999,
@@ -26,6 +24,71 @@ biomass<-abundance[meanWeight] %>%
     dcast.data.table(river+year+season~stage) %>%
   setnames(c("1","2"),c("yoy","adults")) %>%
   .[,totalBiomass:=yoy+adults]
+biomass<-readRDS("vignettes/westBrook/biomass.rds") %>%
+  .[,totalBiomass:=sum(yoy,adults,na.rm=T),by=.(river,year,season)]
+
+a<-lm(totalBiomass~as.factor(year)*as.factor(season)*river,data=biomass)
+unsampled<-data.table(river="west brook",totalBiomass=NA,season=c(4,4,4,1),
+                      year=c(2005,2007,2012,2015))
+unsampled$totalBiomass<-predict(a,data.frame(unsampled[,.(river,year,season)]))
+
+unsampled<-
+  rbind(unsampled,
+        biomass[((season==3&year==2002)|(season==1&year==2003))&river!="west brook",
+                .(totalBiomass=mean(totalBiomass)),by=river] %>%
+          .[,":="(season=4,year=2002)]
+  )
+
+biomass<-bind_rows(biomass,unsampled) %>% data.frame() %>% data.table() %>%
+  setkey(river,year,season)
+
+saveRDS(biomass,"vignettes/westBrook/bktBiomass.rds")
+
+###########################################################################
+#bnt
+dat<-createCoreData("electrofishing",columnsToAdd = c("river","observedWeight","observedLength","sampleName")) %>%
+  addTagProperties() %>%
+  filter(species=="bnt" & !is.na(observedLength)) %>%
+  addSampleProperties() %>%
+  data.frame() %>%
+  data.table() %>%
+  .[,stage:=as.numeric(cohort!=round(year+season/3.9)-1)+1]
 
 
-saveRDS(biomass,"vignettes/westBrook/biomass.rds")
+
+meanWeight<-dat[,.(meanWeight=mean(observedWeight,na.rm=T)),.(river,year,season,stage)] %>%
+  setkey(river,year,season,stage)
+
+abundance<-readRDS("C:/Users/Evan/Desktop/Conte/trout_yoy/cjsInputs/bktAdultAlive.rds") %>%
+  .[,":="(river=as.numeric(river),
+          season=as.numeric(season),
+          year=as.numeric(year)+1999,
+          stage=as.numeric(stage))] %>%
+  .[,river:=c("west brook","wb jimmy","wb mitchell","wb obear")[river]] %>%
+  setkey(river,year,season,stage)
+
+biomass<-abundance[meanWeight] %>%
+  .[,biomass:=meanWeight*mean] %>%
+  .[!is.na(stage),.(river,stage,year,season,biomass)] %>%
+  melt(id.vars=c("river","stage","year","season")) %>%
+  dcast.data.table(river+year+season~stage) %>%
+  setnames(c("1","2"),c("yoy","adults")) %>%
+  .[,totalBiomass:=yoy+adults] %>%
+  .[,totalBiomass:=sum(yoy,adults,na.rm=T),by=.(river,year,season)]
+
+a<-lm(totalBiomass~as.factor(year)*as.factor(season)*river,data=biomass)
+unsampled<-data.table(river="west brook",totalBiomass=NA,season=c(4,4,4,1),
+                      year=c(2005,2007,2012,2015))
+unsampled$totalBiomass<-predict(a,data.frame(unsampled[,.(river,year,season)]))
+
+unsampled<-
+  rbind(unsampled,
+        biomass[((season==3&year==2002)|(season==1&year==2003))&river!="west brook",
+                .(totalBiomass=mean(totalBiomass)),by=river] %>%
+          .[,":="(season=4,year=2002)]
+  )
+
+biomass<-bind_rows(biomass,unsampled) %>% data.frame() %>% data.table() %>%
+  setkey(river,year,season)
+
+saveRDS(biomass,"vignettes/westBrook/bntBiomass.rds")
