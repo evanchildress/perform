@@ -122,7 +122,8 @@ for(r in c("wb mitchell","wb obear")){
   jagsData$time<-core$time
   jagsData$nInd<-max(core$tagIndex)
   jagsData$isSpring<-as.numeric(jagsData$season==2)
-  jagsData$biomassDATA<-core$totalBiomass
+  jagsData$biomassDATA<-scale(core$totalBiomass)[,1]
+  jagsData$flowDATA<-scale(jagsData$flowDATA)[,1]
 
 
   if(r=="wb mitchell"){
