@@ -1,16 +1,7 @@
 library(perform)
 library(plotHacks)
 
-res<-readRDS("results/pSimResults.rds") %>%
-  data.table() %>%
-  .[,index:=rep(1:(nrow(.)/6),each=6)] %>%
-  .[,converged:=all(rHat<1.1),by=index] %>%
-  setkey(index) %>%
-  .[,":="(tOpt=trueValue[which(parameter=="tOpt")],
-          ctMax=trueValue[which(parameter=="ctMax")],
-          eps=trueValue[which(parameter=="eps")]),
-    by=index] %>%
-  .[,withinCI:=q2.5<trueValue&q97.5>trueValue]
+res<-readRDS("vignettes/simulations/results/mergedSimResults.rds")
 
 plotIterations<-function(data){
   x<-seq(0,26.5,0.25)
@@ -32,7 +23,7 @@ temp99<-temp[river=="wb jimmy"&!is.na(temperature),quantile(temperature,0.99)]
 maxTemp<-temp[river=="wb jimmy"&!is.na(temperature),max(temperature)]
 
 
-tiff.par("results/figures/samplingEffect.tif",mfrow=c(4,4),oma=c(2,2,2,0),
+tiff.par("vignettes/simulations/results/figures/samplingEffect.tif",mfrow=c(4,4),oma=c(2,2,2,0),
          mar=c(1.5,1.5,0,0))
   for(opt in c(8.5,13,16.5,19)){
     for(fr in c("annual","seasonal","monthly","daily")){
@@ -55,7 +46,7 @@ tiff.par("results/figures/samplingEffect.tif",mfrow=c(4,4),oma=c(2,2,2,0),
   mtext("Relative Performance",2,outer=T,line=0.5,las=0)
 dev.off()
 
-tiff.par("results/figures/epsEffect.tif",mfrow=c(4,3),oma=c(2,2,2,0),
+tiff.par("vignettes/simulations/results/figures/epsEffect.tif",mfrow=c(4,3),oma=c(2,2,2,0),
          mar=c(1.5,1.5,0,0))
 for(opt in c(8.5,13,16.5,19)){
   for(e in c(0.000375,0.00075,0.0015)){
@@ -78,10 +69,10 @@ mtext(bquote(Temperature~(degree~C)),1,outer=T,line=0.5)
 mtext("Relative Performance",2,outer=T,line=0.5,las=0)
 dev.off()
 
-tiff.par("results/figures/maxEffect.tif",mfrow=c(4,4),oma=c(2,2,2,0),
+tiff.par("vignettes/simulations/results/figures/maxEffect.tif",mfrow=c(4,3),oma=c(2,2,2,0),
          mar=c(1.5,1.5,0,0))
 for(opt in c(8.5,13,16.5,19)){
-  for(max in c(17.5,20.5,23.5,26.5)){
+  for(max in c(20.5,23.5,26.5)){
     # for(max in c(17.5,20.5,23.5,26.5)){
     plot(NA,xlim=c(0,26.5),ylim=c(-1,1),xlab="",
          ylab="Relative Performance")
@@ -105,9 +96,9 @@ dev.off()
 
 for(er in c(0.000375,0.00075,0.0015)){
   for(fr in c("annual","seasonal","monthly","daily")){
-    tiff.par(paste0("results/figures/",er,fr,".tif"),mfrow=c(3,3))
-    for(opt in unique(res$tOpt)){
-      for(max in unique(res$ctMax)){
+    tiff.par(paste0("vignettes/simulations/results/figures/",er,fr,".tif"),mfrow=c(4,4))
+    for(opt in c(8.5,13,16.5,19)){
+      for(max in c(17.5,20.5,23.5,26.5)){
         if(max<=opt){
           plot(NA,xlim=c(0,1),ylim=c(0,1),axes=F,xlab="",ylab="")
           next

@@ -1,8 +1,9 @@
 library(perform)
 reconnect()
-rivers<-c("wb jimmy","wb mitchell","wb obear")
+
+rivers<-c("wb jimmy","wb mitchell","wb obear","west brook")
 #r<-"wb jimmy"
-for(r in rivers){
+for(r in c("wb mitchell","wb obear")){
   core<-wbLengths%>%
     data.frame() %>%
     fillSizeLocation(size=F) %>%
@@ -23,7 +24,32 @@ for(r in rivers){
         .[,lastObs:=detectionDate==max(detectionDate),by=tag] %>%
         .[!lastObs|!is.na(observedLength)] %>%
         .[,lastObs:=NULL]
-  core[,tagIndex:=match(tag,unique(tag))]
+  core[,tagIndex:=match(tag,unique(tag))] %>%
+    setkey(river,year,season)
+
+  biomass<-readRDS("vignettes/westBrook/biomass.rds") %>%
+    .[,totalBiomass:=sum(yoy,adults,na.rm=T),by=.(river,year,season)]
+
+  a<-lm(totalBiomass~as.factor(year)*as.factor(season)*river,data=biomass)
+  unsampled<-data.table(river="west brook",totalBiomass=NA,season=c(4,4,4,1),
+                        year=c(2005,2007,2012,2015))
+  unsampled$totalBiomass<-predict(a,data.frame(unsampled[,.(river,year,season)]))
+
+  unsampled<-
+    rbind(unsampled,
+    biomass[((season==3&year==2002)|(season==1&year==2003))&river!="west brook",
+                     .(totalBiomass=mean(totalBiomass)),by=river] %>%
+    .[,":="(season=4,year=2002)]
+    )
+
+
+
+  biomass<-bind_rows(biomass,unsampled) %>% data.frame() %>% data.table() %>%
+            setkey(river,year,season)
+  core<-biomass[core] %>%
+    setkey(tag,detectionDate)
+
+
   #core<-core[!tag %in% c("00088d1ac1","00088d2f6f")]
     # .[,tagIndex:=match(tag,unique(tag))] %>%
     # setkey(tagIndex,detectionDate) %>%
@@ -40,10 +66,12 @@ for(r in rivers){
         "ind",
         "season")]
 
-  core<-core[,.(tag,tagIndex,detectionDate,observedLength)]
+  core<-core[,.(tag,tagIndex,detectionDate,observedLength,totalBiomass)]
+
+
 
   t<-temp %>%
-    .[river==r] %>%
+    .[river==ifelse(r=="wb obear","wb jimmy",r)] %>%
     .[,date:=as.Date(datetime)]%>%
     .[datetime>=min(core$detectionDate)&datetime<=max(core$detectionDate)] %>%
     setkey(datetime)
@@ -94,7 +122,21 @@ for(r in rivers){
   jagsData$time<-core$time
   jagsData$nInd<-max(core$tagIndex)
   jagsData$isSpring<-as.numeric(jagsData$season==2)
+  jagsData$biomassDATA<-core$totalBiomass
 
+
+  if(r=="wb mitchell"){
+    badStarts<-as.POSIXct("2007-08-02 19:00:00","2013-05-01 00:00:00")
+    badEnds<-as.POSIXct("2007-08-04 00:00:00","2013-10-01 00:00:00")
+    for(b in 1:length(badStarts)){
+      st<-which(t$datetime==badStarts[b])
+      en<-which(t$datetime==badEnds[b])
+      jagsData$evalRows<-jagsData$evalRows[
+        (jagsData$time[jagsData$evalRows]&jagsData$time[jagsData$evalRows-1]<st)|
+          (jagsData$time[jagsData$evalRows]&jagsData$time[jagsData$evalRows-1]>en)]
+    }
+    jagsData$nEvalRows<-length(jagsData$evalRows)
+  }
 
   core[,lengthInit:=approx(observedLength,n=length(observedLength))$y,by=tag]
   core[!is.na(observedLength),lengthInit:=NA]
@@ -140,7 +182,8 @@ assign(paste0("gr",which(r==rivers)),
        core[,.(obsGrowth=diff(observedLength),
                predGrowth=predictedLength[2:length(observedLength)]-
                  observedLength[1:(length(observedLength)-1)],
-               date=detectionDate[2:length(detectionDate)]),
+               date=detectionDate[2:length(detectionDate)],
+               meanTemp=temp[]),
             by=tag] %>%
          .[,residual:=obsGrowth-predGrowth])
 assign(paste0("core",which(r==rivers)),core)

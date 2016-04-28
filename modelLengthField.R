@@ -10,15 +10,15 @@ model{
   beta1~dnorm(0,100)T(0,)
   beta2~dnorm(0,1000)T(,0)
   beta3~dnorm(0,1000)
-  # beta4~dnorm(0,1000)
+  beta4~dnorm(0,1000)
 
   eps~dunif(0,0.1)
     #individual random effect on grMax
-       # for(f in 1:nInd){
-       #   ranInd[f]~dnorm(0,tauInd)
-       # }
-       # tauInd<-1/pow(sigmaInd,2)
-       # sigmaInd~dunif(0,1)
+       for(f in 1:nInd){
+         ranInd[f]~dnorm(0,tauInd)
+       }
+       tauInd<-1/pow(sigmaInd,2)
+       sigmaInd~dunif(0,1)
 
 # #     #random month effect on grMax
 #       for(m in 1:nMonths){
@@ -46,9 +46,11 @@ model{
       p[evalRows[i]-1]<-sum(perf[time[evalRows[i]-1]:time[evalRows[i]]])
 
       grExp[evalRows[i]-1]<-(beta1+beta2*lengthDATA[evalRows[i]-1]+
-                               beta3*flowDATA[evalRows[i]-1])
+                               beta3*flowDATA[evalRows[i]-1]+
+                               beta4*biomassDATA[evalRows[i]-1]+
+                               ranInd[ind[i]]) #random individual effect)
                             *p[evalRows[i]-1] #von bert
-                #+ranInd[ind[i]] #random individual effect
+                #+c
                 #+densityEffect[i] #density effect
 
 
