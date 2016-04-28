@@ -23,8 +23,6 @@ biomass<-abundance[meanWeight] %>%
   melt(id.vars=c("river","stage","year","season")) %>%
     dcast.data.table(river+year+season~stage) %>%
   setnames(c("1","2"),c("yoy","adults")) %>%
-  .[,totalBiomass:=yoy+adults]
-biomass<-readRDS("vignettes/westBrook/biomass.rds") %>%
   .[,totalBiomass:=sum(yoy,adults,na.rm=T),by=.(river,year,season)]
 
 a<-lm(totalBiomass~as.factor(year)*as.factor(season)*river,data=biomass)
@@ -74,7 +72,6 @@ biomass<-abundance[meanWeight] %>%
   melt(id.vars=c("river","stage","year","season")) %>%
   dcast.data.table(river+year+season~stage) %>%
   setnames(c("1","2"),c("yoy","adults")) %>%
-  .[,totalBiomass:=yoy+adults] %>%
   .[,totalBiomass:=sum(yoy,adults,na.rm=T),by=.(river,year,season)]
 
 a<-lm(totalBiomass~as.factor(year)*as.factor(season)*river,data=biomass)
