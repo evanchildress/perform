@@ -1,15 +1,31 @@
 library(perform)
 reconnect()
 
+
+
+
 rivers<-c("wb jimmy","wb mitchell","wb obear","west brook")
 #r<-"wb jimmy"
 for(r in c("wb mitchell","wb obear")){
-  core<-wbLengths%>%
+  for(sp in c("bkt","bnt")){
+    if(sp=="bnt"&r=="wb obear") next
+
+  core<-createCoreData("electrofishing") %>%
+    data.table() %>%
+    .[,n:=.N,by=tag] %>%
+    .[n>1] %>%
+    .[,n:=NULL] %>%
     data.frame() %>%
+    addTagProperties() %>%
+    createCmrData() %>%
+    addKnownZ() %>%
+    filter(knownZ==1) %>%
     fillSizeLocation(size=F) %>%
-    filter(river==r) %>%
+    addSampleProperties() %>%
+    filter(river==r&species==sp) %>%
     data.table() %>%
     .[,diffSample:=c(NA,diff(sampleIndex)),by=tag]
+
   movers<-unique(core[diffSample>1,tag])
   for(t in movers){
     core[tag==t&
@@ -71,7 +87,7 @@ for(r in c("wb mitchell","wb obear")){
 
 
   t<-temp %>%
-    .[river==ifelse(r=="wb obear","wb jimmy",r)] %>%
+    .[river==r] %>%
     .[,date:=as.Date(datetime)]%>%
     .[datetime>=min(core$detectionDate)&datetime<=max(core$detectionDate)] %>%
     setkey(datetime)
@@ -154,18 +170,21 @@ for(r in c("wb mitchell","wb obear")){
   out<-fitModel(jagsData=jagsData,inits=inits,parallel=T,params=parsToMonitor,
                 nb=5000,ni=7000,nt=1,modelFile="modelLengthField.R",codaOnly="lengthExp")
   saveRDS(out,file=paste0("out",toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
-  assign(paste0("out",which(r==rivers)),out)
-  assign(paste0("core",which(r==rivers)),core)
+  assign(paste0("out",sp,which(r==rivers)),out)
+  assign(paste0("core",sp,which(r==rivers)),core)
   # core[jagsData$evalRows,predictedLength:=apply(out$sims.list$lengthExp,2,mean)]
   # core[,residual:=observedLength-predictedLength]
  }
-
+}
 
 
 
  for(r in rivers){
-  out<-get(paste0("out",which(r==rivers)))
-  plot(NA,xlim=c(0,22),ylim=c(-1,1),main=r,xlab="temp",ylab="performance")
+   for(sp in c("bkt","bnt")){
+     if(sp=="bnt"&r=="wb obear") next
+
+  out<-get(paste0("out",sp,which(r==rivers)))
+  plot(NA,xlim=c(0,22),ylim=c(-1,1),main=paste(r,sp),xlab="temp",ylab="performance")
   for(i in sample(1:length(out$sims.list$tOpt),300,replace=T)){
     points(predictPerformance(0:22,tOpt=out$sims.list$tOpt[i],
                               sigma=out$sims.list$sigma[i],
@@ -173,12 +192,12 @@ for(r in c("wb mitchell","wb obear")){
            type='l',col='gray')
   }
 
-core<-get(paste0("core",which(r==rivers)))
+core<-get(paste0("core",sp,which(r==rivers)))
 core$dummy<-1
 core[,firstObs:=detectionDate==min(detectionDate),by=tag] %>%
       .[firstObs==F,predictedLength:=apply(out$sims.list$lengthExp,2,mean)]
 
-assign(paste0("gr",which(r==rivers)),
+assign(paste0("gr",sp,which(r==rivers)),
        core[,.(obsGrowth=diff(observedLength),
                predGrowth=predictedLength[2:length(observedLength)]-
                  observedLength[1:(length(observedLength)-1)],
@@ -186,14 +205,14 @@ assign(paste0("gr",which(r==rivers)),
                meanTemp=temp[]),
             by=tag] %>%
          .[,residual:=obsGrowth-predGrowth])
-assign(paste0("core",which(r==rivers)),core)
+assign(paste0("core",sp,which(r==rivers)),core)
 
-plot(predictedLength~observedLength,data=get(paste0("core",which(r==rivers))))
-a<-lm(predictedLength~observedLength,get(paste0("core",which(r==rivers))))
+plot(predictedLength~observedLength,data=get(paste0("core",sp,which(r==rivers))))
+a<-lm(predictedLength~observedLength,get(paste0("core",sp,which(r==rivers))))
 text(75,150,bquote(R^2==.(round(summary(a)$r.squared,2))))
 
-plot(obsGrowth~predGrowth,data=get(paste0("gr",which(r==rivers))),pch=19,col=gray(0.45,0.5))
-a<-lm(obsGrowth~predGrowth,get(paste0("gr",which(r==rivers))))
+plot(obsGrowth~predGrowth,data=get(paste0("gr",sp,which(r==rivers))),pch=19,col=gray(0.45,0.5))
+a<-lm(obsGrowth~predGrowth,get(paste0("gr",sp,which(r==rivers))))
 abline(a)
 abline(0,1,lty=2)
 text(5,15,bquote(R^2==.(round(summary(a)$r.squared,2))),col='black')
@@ -216,5 +235,5 @@ text(5,15,bquote(R^2==.(round(summary(a)$r.squared,2))),col='black')
 #   plot(predicted~get(paste0("gr",which(r==rivers)))$growth,main=r,
 #        ylab="predicted growth",xlab="observed growth")
 #   abline(0,1)
-# }
+ }
 }
