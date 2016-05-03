@@ -34,7 +34,7 @@ r<-c("wb jimmy")
 #seas<-c(T)
 #rivs<-c("wb jimmy")
 
-totalSims<-length(opts)*length(epses)*length(seas)*length(r)
+totalSims<-length(opts)*length(epses)*length(freq)*length(r)
 
 
 #opt<-opts[simNum %% 3 +1]
@@ -44,21 +44,19 @@ totalSims<-length(opts)*length(epses)*length(seas)*length(r)
 tMax<-maxes[simNum %% 4 +1]
 for(opt in opts){
   for(e in epses){
-#     for(tMax in maxes){
-         for(s in seas){
-#           for(r in rivs){
+     for(f in freq){
           if(tMax<=opt){
             iter<-iter+1
             next}
 	  cat("starting iteration ",iter," of ",totalSims)
           re<-pSimGrowth(tOpt=opt,ctMax=tMax,sigma=4,eps=e,sampleFreq=f,river=r,
-                   nb=8000,ni=10000,modelFile="perform/modelGr.R")
+                   nb=12000,ni=16000,modelFile="perform/modelGr.R")
 	  re$modelIndex<-iter
-    results<-rbind(results,re)
+          results<-rbind(results,re)
 	  iter<-iter+1
 
+    }
   }
-}
 }
 results$simNum<-simNum
 saveRDS(results,paste0("~/perform/output/pSim",simNum,".rds"))
