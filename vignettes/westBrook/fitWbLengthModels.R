@@ -6,8 +6,9 @@ reconnect()
 
 rivers<-c("wb jimmy","wb mitchell","wb obear","west brook")
 #r<-"wb jimmy"
-for(r in c("wb mitchell","wb obear")){
-  for(sp in c("bkt","bnt")){
+for(r in "west brook"){
+  # for(sp in c("bkt","bnt","ats")){
+  for(sp in c("bkt","bnt","ats")){
     if(sp=="bnt"&r=="wb obear") next
 
   core<-createCoreData("electrofishing") %>%
@@ -39,33 +40,35 @@ for(r in c("wb mitchell","wb obear")){
         .[,nMeasures:=NULL] %>%
         .[,lastObs:=detectionDate==max(detectionDate),by=tag] %>%
         .[!lastObs|!is.na(observedLength)] %>%
-        .[,lastObs:=NULL]
+        .[,lastObs:=NULL] %>%
+        .[,firstDate:=min(detectionDate[!is.na(observedLength)]),tag] %>%
+        .[detectionDate>=firstDate] %>%
+        .[,firstDate:=NULL]
+
   core[,tagIndex:=match(tag,unique(tag))] %>%
     setkey(river,year,season)
 
-  biomass<-readRDS("vignettes/westBrook/biomass.rds") %>%
-    .[,totalBiomass:=sum(yoy,adults,na.rm=T),by=.(river,year,season)]
 
-  a<-lm(totalBiomass~as.factor(year)*as.factor(season)*river,data=biomass)
-  unsampled<-data.table(river="west brook",totalBiomass=NA,season=c(4,4,4,1),
-                        year=c(2005,2007,2012,2015))
-  unsampled$totalBiomass<-predict(a,data.frame(unsampled[,.(river,year,season)]))
+  bktBiomass<-readRDS("vignettes/westBrook/bktBiomass.rds")
+  bntBiomass<-readRDS("vignettes/westBrook/bntBiomass.rds")
 
-  unsampled<-
-    rbind(unsampled,
-    biomass[((season==3&year==2002)|(season==1&year==2003))&river!="west brook",
-                     .(totalBiomass=mean(totalBiomass)),by=river] %>%
-    .[,":="(season=4,year=2002)]
-    )
-
-
-
-  biomass<-bind_rows(biomass,unsampled) %>% data.frame() %>% data.table() %>%
-            setkey(river,year,season)
-  core<-biomass[core] %>%
+  core<-bktBiomass[core] %>%
+        bntBiomass[.] %>%
     setkey(tag,detectionDate)
-
-
+  if(r=="wb obear"){
+    core[,bntBiomass:=0]
+  }
+  if(r=="wb mitchell"){
+    core[is.na(bntBiomass),bntBiomass:=0]
+  }
+  if(sp=="ats"){
+    core[,":="(meanBktBiomass=mean(bktBiomass,na.rm=T),
+               meanBntBiomass=mean(bntBiomass,na.rm=T)),by=season] %>%
+      .[is.na(bktBiomass),bktBiomass:=meanBktBiomass] %>%
+      .[is.na(bntBiomass),bntBiomass:=meanBntBiomass] %>%
+      .[,":="(meanBktBiomass=NULL,
+              meanBntBiomass=NULL)]
+  }
   #core<-core[!tag %in% c("00088d1ac1","00088d2f6f")]
     # .[,tagIndex:=match(tag,unique(tag))] %>%
     # setkey(tagIndex,detectionDate) %>%
@@ -82,7 +85,7 @@ for(r in c("wb mitchell","wb obear")){
         "ind",
         "season")]
 
-  core<-core[,.(tag,tagIndex,detectionDate,observedLength,totalBiomass)]
+  core<-core[,.(tag,tagIndex,detectionDate,observedLength,bktBiomass,bntBiomass)]
 
 
 
@@ -92,6 +95,12 @@ for(r in c("wb mitchell","wb obear")){
     .[datetime>=min(core$detectionDate)&datetime<=max(core$detectionDate)] %>%
     setkey(datetime)
 
+  #setting an arbitrary temperature for a period of NAs,
+  #but growth over this period is excluded from the model
+  if(sp=="ats"&r=="west brook"){
+    t[is.na(temperature),temperature:=23]
+  }
+
   core[,':='(time=which.min(
     abs(
       t$datetime-as.POSIXct(paste0(detectionDate," 12:00:00"))
@@ -99,27 +108,27 @@ for(r in c("wb mitchell","wb obear")){
   )),
   by=.(tag,detectionDate)]
 
-  t[,month:=ceiling((month(date))/3)]
-  hoursPerMonth<-t[date>=as.Date("2003-01-01")&date<=as.Date("2014-12-31"),
-                      .(hours=.N/length(unique(year(date)))),
-                      by=month] %>%
-    setkey(month)
-
-  propMonth<-core[,.(tag,time)] %>%
-    .[,startTime:=as.numeric(shift(time)),by=tag] %>%
-    .[,obs:=1:nrow(.)] %>%
-    .[is.na(startTime),startTime:=time-1]
-
-  propMonth<-propMonth[!is.na(startTime),t[startTime:time,.N,by=month] %>%
-                         setkey(month) %>%
-                         .[hoursPerMonth] %>%
-                         .[is.na(N),N:=0] %>%
-                         .[,propMonth:=N/hours] %>%
-                         .[,.(propMonth,month)],
-                       by=.(obs)] %>%
-    melt(id.vars=c("month","obs")) %>%
-    acast(obs~month)
+#   t[,month:=ceiling((month(date))/3)]
+#   hoursPerMonth<-t[date>=as.Date("2003-01-01")&date<=as.Date("2014-12-31"),
+#                       .(hours=.N/length(unique(year(date)))),
+#                       by=month] %>%
+#     setkey(month)
 #
+#   propMonth<-core[,.(tag,time)] %>%
+#     .[,startTime:=as.numeric(shift(time)),by=tag] %>%
+#     .[,obs:=1:nrow(.)] %>%
+#     .[is.na(startTime),startTime:=time-1]
+#
+#   propMonth<-propMonth[!is.na(startTime),t[startTime:time,.N,by=month] %>%
+#                          setkey(month) %>%
+#                          .[hoursPerMonth] %>%
+#                          .[is.na(N),N:=0] %>%
+#                          .[,propMonth:=N/hours] %>%
+#                          .[,.(propMonth,month)],
+#                        by=.(obs)] %>%
+#     melt(id.vars=c("month","obs")) %>%
+#     acast(obs~month)
+# #
 #   jagsData$time<-core$time<-list(lengthDATA=core$observedLength,
 #                  firstObsRows=which(core$firstObs==1),
 #                  nFirstObsRows=length(which(core$firstObs==1)),
@@ -131,15 +140,21 @@ for(r in c("wb mitchell","wb obear")){
 #                  time=core$time,
 #                  nMonths=max(hoursPerMonth$month)
 #   )
-  jagsData$propMonth<-propMonth
-  jagsData$nMonths<-max(hoursPerMonth$month)
+  # jagsData$propMonth<-propMonth
+  # jagsData$nMonths<-max(hoursPerMonth$month)
   jagsData$tempDATA<-t$temperature
   jagsData$nTimes<-nrow(t)
   jagsData$time<-core$time
   jagsData$nInd<-max(core$tagIndex)
   jagsData$isSpring<-as.numeric(jagsData$season==2)
-  jagsData$biomassDATA<-scale(core$totalBiomass)[,1]
+  jagsData$bktBiomassDATA<-scale(core$bktBiomass)[,1]
+  jagsData$bntBiomassDATA<-scale(core$bntBiomass)[,1]
   jagsData$flowDATA<-scale(jagsData$flowDATA)[,1]
+  jagsData$yday<-yday(core$detectionDate)
+
+  if(r=="wb obear"){
+    jagsData$bntBiomassDATA<-rep(0,nrow(core))
+  }
 
 
   if(r=="wb mitchell"){
@@ -155,6 +170,20 @@ for(r in c("wb mitchell","wb obear")){
     jagsData$nEvalRows<-length(jagsData$evalRows)
   }
 
+  if(r=="west brook" & sp=="ats"){
+    badStarts<-as.POSIXct("1998-06-24 20:00:00")
+    badEnds<-as.POSIXct("1998-08-21 16:00:00")
+    for(b in 1:length(badStarts)){
+      st<-which(t$datetime==badStarts[b])
+      en<-which(t$datetime==badEnds[b])
+      jagsData$evalRows<-jagsData$evalRows[
+        (jagsData$time[jagsData$evalRows]&jagsData$time[jagsData$evalRows-1]<st)|
+          (jagsData$time[jagsData$evalRows]&jagsData$time[jagsData$evalRows-1]>en)]
+    }
+    jagsData$nEvalRows<-length(jagsData$evalRows)
+  }
+
+
   core[,lengthInit:=approx(observedLength,n=length(observedLength))$y,by=tag]
   core[!is.na(observedLength),lengthInit:=NA]
 
@@ -166,11 +195,13 @@ for(r in c("wb mitchell","wb obear")){
                          eps=0.003)
   }
 
-  parsToMonitor<-c("beta1","beta2","beta3","beta4","tOpt",'ctMax',"sigma",
-                   'eps',"sigmaInd","lengthExp")
+  parsToMonitor<-c("beta1","beta2","beta3","beta4","beta5",
+                   "tOpt",'ctMax',"sigma","ranMonth","sigmaMonth",
+                   'eps',"sigmaInd","lengthExp","b")
   out<-fitModel(jagsData=jagsData,inits=inits,parallel=T,params=parsToMonitor,
-                nb=5000,ni=7000,nt=1,modelFile="modelLengthField.R",codaOnly="lengthExp")
-  saveRDS(out,file=paste0("out",toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
+                nb=7000,ni=10000,nt=1,modelFile="modelLengthField.R",codaOnly="lengthExp")
+  saveRDS(out,file=paste0("vignettes/westBrook/results/out",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
+  print(out)
   assign(paste0("out",sp,which(r==rivers)),out)
   assign(paste0("core",sp,which(r==rivers)),core)
   # core[jagsData$evalRows,predictedLength:=apply(out$sims.list$lengthExp,2,mean)]
@@ -180,8 +211,8 @@ for(r in c("wb mitchell","wb obear")){
 
 
 
- for(r in rivers){
-   for(sp in c("bkt","bnt")){
+ for(r in "west brook"){
+   for(sp in c("bkt","bnt","ats")){
      if(sp=="bnt"&r=="wb obear") next
 
   out<-get(paste0("out",sp,which(r==rivers)))
@@ -202,8 +233,7 @@ assign(paste0("gr",sp,which(r==rivers)),
        core[,.(obsGrowth=diff(observedLength),
                predGrowth=predictedLength[2:length(observedLength)]-
                  observedLength[1:(length(observedLength)-1)],
-               date=detectionDate[2:length(detectionDate)],
-               meanTemp=temp[]),
+               date=detectionDate[2:length(detectionDate)]),
             by=tag] %>%
          .[,residual:=obsGrowth-predGrowth])
 assign(paste0("core",sp,which(r==rivers)),core)

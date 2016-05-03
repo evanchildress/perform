@@ -4,7 +4,7 @@
 
 #simulation setttings
 pSimGrowth<-function(tOpt,ctMax,sigma,eps,sampleFreq="annual",
-                     river="wb jimmy",modelFile="modelGr.R",
+                     river="wb jimmy",modelFile="modelGr.R",seasonalEffect=F,
                      returnRaw=F,na=500,nb=5000,ni=7000,parallel=T){
 
   controls<-list(annual=list(nYoy=60,
@@ -51,6 +51,7 @@ pSimGrowth<-function(tOpt,ctMax,sigma,eps,sampleFreq="annual",
     setkey(datetime)
 
   t[,performance:=predictPerformance(temperature,tOpt,ctMax,sigma)]
+  t[,seasonalEffect:=sin(yday(datetime)/366*2*pi)/10+1]
 
 
   sampleDates<-data.table(date=seq(controls[[sampleFreq]]$startDate,
@@ -61,7 +62,12 @@ pSimGrowth<-function(tOpt,ctMax,sigma,eps,sampleFreq="annual",
 
   t[,sample:=sum(date>=sampleDates$date),by=date]
 
-  perf<-t[,.(perf=sum(performance)),by=sample]
+  perf<-t[,.(perf=sum(performance),
+             seasonalEffect=mean(seasonalEffect)),by=sample]
+  if(seasonalEffect==F){
+    perf[,seasonalEffect:=1]
+  }
+
 
   core<-data.table(sample=rep(sampleDates[month(date)==10&mday(date)==1,sample],
                               each=controls[[sampleFreq]]$nYoy)) %>%
@@ -79,6 +85,7 @@ pSimGrowth<-function(tOpt,ctMax,sigma,eps,sampleFreq="annual",
       err<-rnorm(1,0,eps)
       core[tag==tg&sample==s+1,":="(
         length=startLength+(beta1+startLength*beta2+err)*
+             perf[sample==s,seasonalEffect]*
              perf[sample==s,perf],
         noise=err)
              ]
@@ -143,11 +150,15 @@ pSimGrowth<-function(tOpt,ctMax,sigma,eps,sampleFreq="annual",
   inits<-function(){list(beta1=0.015,
                          beta2= -6e-05)}
 # inits<-function(){list(grExp=gr$growth)}
-  parsToSave<-c("tOpt","ctMax","sigma","beta1","beta2","eps")
+  parsToSave<-c("tOpt","ctMax","sigma","beta1","beta2","eps","grExp")
 
   out<-fitModel(jagsData=jagsData,inits=NULL,modelFile=modelFile,
-                parallel=parallel,na=na,nb=nb,ni=ni,nt=1,params=parsToSave)
-  if(returnRaw){return(out)}
+                parallel=parallel,na=na,nb=nb,ni=ni,nt=1,params=parsToSave,
+                codaOnly="grExp")
+  if(returnRaw){
+    gr<<-gr
+    return(out)
+  }
   res<-out$summary %>%
     data.table(keep.rownames=T) %>%
     setnames(c("parameter","mean","sd","q2.5","q25",

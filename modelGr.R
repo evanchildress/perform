@@ -39,6 +39,7 @@ model{
       p[i]<-sum(perf[startTime[i]:endTime[i]]) #summed performance over growth period
 
       gr[i]~dnorm(grMaxExpected[i]*p[i],1/pow(eps*p[i],2))
+      grExp[i]<-grMaxExpected[i]*p[i]
     }
 
   }
