@@ -35,13 +35,13 @@ model{
     #   }
     #   monthEffect[evalRows[i]-1]<-sum(monEff[evalRows[i]-1,])
     # }
-       for(be in 1:5){
-         b[be]~dnorm(0,1000)
-       }
-
-    for(d in 1:366){
-      seasonalEffect[d]<-b[1]+b[2]*d+b[3]*d^2+b[4]*d^3+b[5]*d^4
-    }
+    #    for(be in 1:6){
+    #      b[be]~dnorm(0,1000)
+    #    }
+    #
+    # for(d in 1:366){
+    #   seasonalEffect[d]<-b[1]+b[2]*d+b[3]*d^2+b[4]*d^3+b[5]*d^4+b[6]*d^5
+    # }
 
     for(t in 1:nTimes){
       perf[t]<-ifelse(tempDATA[t]>tOpt,1-((tempDATA[t]-tOpt)/(tOpt-ctMax))^2,
@@ -54,18 +54,17 @@ model{
 
       p[evalRows[i]-1]<-sum(perf[time[evalRows[i]-1]:time[evalRows[i]]])
 
-      st[evalRows[i]-1]<-min(yday[evalRows[i]-1],yday[evalRows[i]])
-      en[evalRows[i]-1]<-max(yday[evalRows[i]-1],yday[evalRows[i]])
+      # st[evalRows[i]-1]<-min(yday[evalRows[i]-1],yday[evalRows[i]])
+      # en[evalRows[i]-1]<-max(yday[evalRows[i]-1],yday[evalRows[i]])
+      #
+      # se[evalRows[i]-1]<-ifelse(yday[evalRows[i]-1]<yday[evalRows[i]],
+      #                           sum(seasonalEffect[st[evalRows[i]-1]:en[evalRows[i]-1]]),
+      #                           #sum(seasonalEffect[yday[evalRows[i]-1]:yday[evalRows[i]]]),
+      #                           sum(seasonalEffect[yday[evalRows[i]-1]:365])+
+      #                           sum(seasonalEffect[1:yday[evalRows[i]]])-
+      #                           2*sum(seasonalEffect[st[evalRows[i]-1]:en[evalRows[i]-1]]))
 
-      se[evalRows[i]-1]<-ifelse(yday[evalRows[i]-1]<yday[evalRows[i]],
-                                sum(seasonalEffect[st[evalRows[i]-1]:en[evalRows[i]-1]]),
-                                #sum(seasonalEffect[yday[evalRows[i]-1]:yday[evalRows[i]]]),
-                                sum(seasonalEffect[yday[evalRows[i]-1]:365])+
-                                sum(seasonalEffect[1:yday[evalRows[i]]])-
-                                2*sum(seasonalEffect[st[evalRows[i]-1]:en[evalRows[i]-1]]))
-
-      grExp[evalRows[i]-1]<-(beta1+beta2*lengthDATA[evalRows[i]-1]+
-                               se[evalRows[i]-1])
+      grExp[evalRows[i]-1]<-(beta1+beta2*lengthDATA[evalRows[i]-1])
                                # monthEffect[evalRows[i]-1]) #random individual effect)
                             *p[evalRows[i]-1] #von bert
                 #+c
