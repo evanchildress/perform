@@ -1,3 +1,5 @@
+library(data.table)
+library(dplyr)
 res<-rbind(readRDS("vignettes/simulations/results/pSimResults.rds"),
            readRDS("vignettes/simulations/results/pSimResults2.rds"))%>%
   data.table() %>%

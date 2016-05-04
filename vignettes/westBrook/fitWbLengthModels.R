@@ -24,6 +24,8 @@ for(r in "west brook"){
     fillSizeLocation(size=F) %>%
     addSampleProperties() %>%
     filter(river==r&species==sp) %>%
+    addEnvironmental(funName="median") %>%
+    select(-medianTemperature,-lagDetectionDate) %>%
     data.table() %>%
     .[,diffSample:=c(NA,diff(sampleIndex)),by=tag]
 
@@ -48,27 +50,28 @@ for(r in "west brook"){
   core[,tagIndex:=match(tag,unique(tag))] %>%
     setkey(river,year,season)
 
-
-  bktBiomass<-readRDS("vignettes/westBrook/bktBiomass.rds")
-  bntBiomass<-readRDS("vignettes/westBrook/bntBiomass.rds")
-
-  core<-bktBiomass[core] %>%
-        bntBiomass[.] %>%
+#
+#   bktBiomass<-readRDS("vignettes/westBrook/bktBiomass.rds")
+#   bntBiomass<-readRDS("vignettes/westBrook/bntBiomass.rds")
+#
+#   core<-bktBiomass[core] %>%
+#         bntBiomass[.] %>%
+  core%>%
     setkey(tag,detectionDate)
-  if(r=="wb obear"){
-    core[,bntBiomass:=0]
-  }
-  if(r=="wb mitchell"){
-    core[is.na(bntBiomass),bntBiomass:=0]
-  }
-  if(sp=="ats"){
-    core[,":="(meanBktBiomass=mean(bktBiomass,na.rm=T),
-               meanBntBiomass=mean(bntBiomass,na.rm=T)),by=season] %>%
-      .[is.na(bktBiomass),bktBiomass:=meanBktBiomass] %>%
-      .[is.na(bntBiomass),bntBiomass:=meanBntBiomass] %>%
-      .[,":="(meanBktBiomass=NULL,
-              meanBntBiomass=NULL)]
-  }
+#   if(r=="wb obear"){
+#     core[,bntBiomass:=0]
+#   }
+#   if(r=="wb mitchell"){
+#     core[is.na(bntBiomass),bntBiomass:=0]
+#   }
+#   if(sp=="ats"){
+#     core[,":="(meanBktBiomass=mean(bktBiomass,na.rm=T),
+#                meanBntBiomass=mean(bntBiomass,na.rm=T)),by=season] %>%
+#       .[is.na(bktBiomass),bktBiomass:=meanBktBiomass] %>%
+#       .[is.na(bntBiomass),bntBiomass:=meanBntBiomass] %>%
+#       .[,":="(meanBktBiomass=NULL,
+#               meanBntBiomass=NULL)]
+#   }
   #core<-core[!tag %in% c("00088d1ac1","00088d2f6f")]
     # .[,tagIndex:=match(tag,unique(tag))] %>%
     # setkey(tagIndex,detectionDate) %>%
@@ -81,11 +84,11 @@ for(r in "west brook"){
         "nEvalRows",
         "nAllRows",
         "lengthDATA",
-        "flowDATA",
         "ind",
         "season")]
 
-  core<-core[,.(tag,tagIndex,detectionDate,observedLength,bktBiomass,bntBiomass)]
+  # core<-core[,.(tag,tagIndex,detectionDate,observedLength,bktBiomass,bntBiomass)]
+  core<-core[,.(tag,tagIndex,detectionDate,observedLength,medianFlow)]
 
 
 
@@ -146,11 +149,11 @@ for(r in "west brook"){
   jagsData$nTimes<-nrow(t)
   jagsData$time<-core$time
   jagsData$nInd<-max(core$tagIndex)
-  jagsData$isSpring<-as.numeric(jagsData$season==2)
-  jagsData$bktBiomassDATA<-scale(core$bktBiomass)[,1]
-  jagsData$bntBiomassDATA<-scale(core$bntBiomass)[,1]
-  jagsData$flowDATA<-scale(jagsData$flowDATA)[,1]
-  jagsData$yday<-yday(core$detectionDate)
+#   jagsData$isSpring<-as.numeric(jagsData$season==2)
+#   jagsData$bktBiomassDATA<-scale(core$bktBiomass)[,1]
+#   jagsData$bntBiomassDATA<-scale(core$bntBiomass)[,1]
+  jagsData$flowDATA<-scale(core$medianFlow)[,1]
+  # jagsData$yday<-yday(core$detectionDate)
 
   if(r=="wb obear"){
     jagsData$bntBiomassDATA<-rep(0,nrow(core))
@@ -212,7 +215,7 @@ for(r in "west brook"){
 
 
  for(r in "west brook"){
-   for(sp in c("bkt","bnt","ats")){
+   for(sp in c("bnt","ats")){
      if(sp=="bnt"&r=="wb obear") next
 
   out<-get(paste0("out",sp,which(r==rivers)))
