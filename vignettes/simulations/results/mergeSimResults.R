@@ -2,7 +2,7 @@ library(data.table)
 library(dplyr)
 res<-rbind(readRDS("vignettes/simulations/results/pSimResults.rds"),
            readRDS("vignettes/simulations/results/pSimResults2.rds"),
-           readRDS("vignettes/simulations/results/pSimResults2.rds"))%>%
+           readRDS("vignettes/simulations/results/pSimResults3.rds"))%>%
   data.table() %>%
   .[,index:=rep(1:(nrow(.)/6),each=6)] %>%
   .[,converged:=all(rHat<1.1),by=index] %>%
