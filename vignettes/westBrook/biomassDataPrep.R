@@ -85,5 +85,4 @@ biomass<-bind_rows(biomass,unsampled) %>% data.frame() %>% data.table() %>%
   .[,.(river,year,season,totalBiomass)] %>%
   setnames("totalBiomass","bntBiomass") %>%
   setkey(river,year,season)
-
 saveRDS(biomass,"vignettes/westBrook/bntBiomass.rds")
