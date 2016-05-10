@@ -7,9 +7,10 @@ reconnect()
 rivers<-c("wb jimmy","wb mitchell","wb obear","west brook")
 #r<-"wb jimmy"
 for(r in "west brook"){
-  # for(sp in c("bkt","bnt","ats")){
-  for(sp in c("bkt","bnt","ats")){
+  for(sp in c("bkt","bnt")){
+  # for(sp in c("ats")){
     if(sp=="bnt"&r=="wb obear") next
+
 
   core<-createCoreData("electrofishing") %>%
     data.table() %>%
@@ -24,10 +25,22 @@ for(r in "west brook"){
     fillSizeLocation(size=F) %>%
     addSampleProperties() %>%
     filter(river==r&species==sp) %>%
-    addEnvironmental(funName="median") %>%
-    select(-medianTemperature,-lagDetectionDate) %>%
+    addEnvironmental(funName="mean") %>%
+    rename(medianFlow=meanFlow)%>%
+    select(-meanTemperature,-lagDetectionDate) %>%
     data.table() %>%
     .[,diffSample:=c(NA,diff(sampleIndex)),by=tag]
+
+  if(sp=="bnt"){
+    core[tag=="257c59a7cc"&observedLength==258,observedLength:=NA]
+    core[tag=="1c2c582218"&observedLength==240,observedLength:=NA]
+    core[tag=="00088d22ae"&observedLength==70,observedLength:=NA]
+    core[tag=="257c59b698"&observedLength==117,observedLength:=NA]
+    core[tag=="1bf0fec1d7"&observedLength==66,observedLength:=NA]
+  }
+  if(sp=="bkt"){
+    core[tag=="257c67ca48"&observedLength==224,observedLength:=NA]
+  }
 
   movers<-unique(core[diffSample>1,tag])
   for(t in movers){
@@ -51,12 +64,11 @@ for(r in "west brook"){
     setkey(river,year,season)
 
 #
-#   bktBiomass<-readRDS("vignettes/westBrook/bktBiomass.rds")
-#   bntBiomass<-readRDS("vignettes/westBrook/bntBiomass.rds")
-#
-#   core<-bktBiomass[core] %>%
-#         bntBiomass[.] %>%
-  core%>%
+  bktBiomass<-readRDS("vignettes/westBrook/bktBiomass.rds")
+  bntBiomass<-readRDS("vignettes/westBrook/bntBiomass.rds")
+
+  core<-bktBiomass[core] %>%
+        bntBiomass[.] %>%
     setkey(tag,detectionDate)
 #   if(r=="wb obear"){
 #     core[,bntBiomass:=0]
@@ -77,7 +89,10 @@ for(r in "west brook"){
     # setkey(tagIndex,detectionDate) %>%
     # .[,firstObs:=detectionDate==min(detectionDate),by=tag]
 
-  jagsData<-createJagsData(data.frame(core) %>% addEnvironmental()) %>%
+
+
+  jagsData<-createJagsData(data.frame(core) %>%
+                             addEnvironmental()) %>%
     .[c("firstObsRows",
         "nFirstObsRows",
         "evalRows",
@@ -87,8 +102,8 @@ for(r in "west brook"){
         "ind",
         "season")]
 
-  # core<-core[,.(tag,tagIndex,detectionDate,observedLength,bktBiomass,bntBiomass)]
-  core<-core[,.(tag,tagIndex,detectionDate,observedLength,medianFlow)]
+  core<-core[,.(tag,tagIndex,detectionDate,observedLength,
+                bktBiomass,bntBiomass,medianFlow)]
 
 
 
@@ -99,7 +114,7 @@ for(r in "west brook"){
     setkey(datetime)
 
   #setting an arbitrary temperature for a period of NAs,
-  #but growth over this period is excluded from the model
+  #but growth over this period is excluded from the likelihood in the model
   if(sp=="ats"&r=="west brook"){
     t[is.na(temperature),temperature:=23]
   }
@@ -149,9 +164,10 @@ for(r in "west brook"){
   jagsData$nTimes<-nrow(t)
   jagsData$time<-core$time
   jagsData$nInd<-max(core$tagIndex)
-#   jagsData$isSpring<-as.numeric(jagsData$season==2)
-#   jagsData$bktBiomassDATA<-scale(core$bktBiomass)[,1]
-#   jagsData$bntBiomassDATA<-scale(core$bntBiomass)[,1]
+  jagsData$isSpring<-as.numeric(jagsData$season==2)
+  jagsData$bktBiomassDATA<-scale(core$bktBiomass)[,1]
+  jagsData$bntBiomassDATA<-scale(core$bntBiomass)[,1]
+  jagsData$biomassDATA<-scale(core[[paste0(sp,"Biomass")]])[,1]
   jagsData$flowDATA<-scale(core$medianFlow)[,1]
   # jagsData$yday<-yday(core$detectionDate)
 
@@ -202,8 +218,9 @@ for(r in "west brook"){
                    "tOpt",'ctMax',"sigma","ranMonth","sigmaMonth",
                    'eps',"sigmaInd","lengthExp","b")
   out<-fitModel(jagsData=jagsData,inits=inits,parallel=T,params=parsToMonitor,
-                nb=7000,ni=10000,nt=1,modelFile="modelLengthField.R",codaOnly="lengthExp")
+                nb=5000,ni=7000,nt=1,modelFile="modelLengthField.R",codaOnly="lengthExp")
   saveRDS(out,file=paste0("vignettes/westBrook/results/out",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
+  saveRDS(core,file=paste0("vignettes/westBrook/results/core",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
   print(out)
   assign(paste0("out",sp,which(r==rivers)),out)
   assign(paste0("core",sp,which(r==rivers)),core)
@@ -215,7 +232,7 @@ for(r in "west brook"){
 
 
  for(r in "west brook"){
-   for(sp in c("bnt","ats")){
+   for(sp in c("bkt","bnt")){
      if(sp=="bnt"&r=="wb obear") next
 
   out<-get(paste0("out",sp,which(r==rivers)))
