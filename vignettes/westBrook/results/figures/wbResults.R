@@ -77,10 +77,29 @@ for(sp in c("bkt","bnt")){
                         q2.5=quantile(out$sims.list$beta1/(-out$sims.list$beta2),0.025),
                         q97.5=quantile(out$sims.list$beta1/(-out$sims.list$beta2),0.975))
   )
+  res[,value:=as.character(NA)]
+  for(p in parameter[!parameter %in% c("ctMax","sigma","tOpt","lInf","eps")]){
+    res[parameter==p,value:=paste0(round(mean,4)," (",
+                                   round(q2.5,4),",",
+                                   round(q97.5,4),")")]
+  }
+  for(p in parameter[parameter %in% c("ctMax","sigma","tOpt")]){
+    res[parameter==p,value:=paste0(round(mean,1)," (",
+                                   round(q2.5,1),",",
+                                   round(q97.5,1),")")]
+  }
+  res[parameter=="lInf",value:=paste0(round(mean)," (",
+                                      round(q2.5),",",
+                                      round(q97.5),")")]
+  res[parameter=="eps",value:=paste0(round(mean,5)," (",
+                                      round(q2.5,5),",",
+                                      round(q97.5,5),")")]
+  res<-res[,.(parameter,value)]
+
   assign(paste0("res",sp),res)
 }
 dev.off()
 
 res<-merge(resbkt,resbnt,by="parameter",suffixes=c("Bkt","Bnt"))
-write.csv(res,"wbParTable.csv")
+write.csv(res,"vignettes/westBrook/results/wbParTable.csv")
 
