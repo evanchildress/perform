@@ -1,9 +1,6 @@
 library(perform)
 reconnect()
 
-
-
-
 rivers<-c("wb jimmy","wb mitchell","wb obear","west brook")
 #r<-"wb jimmy"
 for(r in "west brook"){
@@ -11,6 +8,15 @@ for(r in "west brook"){
   # for(sp in c("ats")){
     if(sp=="bnt"&r=="wb obear") next
 
+  tOptPriors<-list(bkt=list(tOptMean=14.2,
+                            tOptPrecision=0.5,
+                            ctMaxMean=23.4,
+                            ctMaxPrecision=0.5),
+                   bnt=list(tOptMean=15.95,
+                            tOptPrecision=0.5,
+                            ctMaxMean=22.5,
+                            ctMaxPrecision=0.5)
+  )
 
   core<-createCoreData("electrofishing") %>%
     data.table() %>%
