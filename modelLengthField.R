@@ -1,9 +1,10 @@
 model{
 
   #performance parameters
-  maxAdd~dnorm(5,0.01)T(0,50)
-  ctMax<-maxAdd+tOpt
-  tOpt~dnorm(11,0.01)T(0,50)
+  #maxAdd~dnorm(5,0.01)T(0,50)
+  #ctMax<-maxAdd+tOpt
+  ctMax~dnorm(ctMaxMean,ctMaxPrecision)T(tOpt,ctUltimate)
+  tOpt~dnorm(tOptMean,tOptPrecision)T(0,ctUltimate)
   sigma~dunif(0,10)
 
   #derivative of the von Bert is linear, intercept and slope(with length) of hourly growth rate

@@ -219,8 +219,8 @@ for(r in "west brook"){
                    'eps',"sigmaInd","lengthExp","b")
   out<-fitModel(jagsData=jagsData,inits=inits,parallel=T,params=parsToMonitor,
                 nb=5000,ni=7000,nt=1,modelFile="modelLengthField.R",codaOnly="lengthExp")
-  saveRDS(out,file=paste0("vignettes/westBrook/results/out",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
-  saveRDS(core,file=paste0("vignettes/westBrook/results/core",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
+  # saveRDS(out,file=paste0("vignettes/westBrook/results/out",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
+  # saveRDS(core,file=paste0("vignettes/westBrook/results/core",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
   print(out)
   assign(paste0("out",sp,which(r==rivers)),out)
   assign(paste0("core",sp,which(r==rivers)),core)
@@ -288,3 +288,12 @@ text(5,15,bquote(R^2==.(round(summary(a)$r.squared,2))),col='black')
 #   abline(0,1)
  }
 }
+
+###code to estimate bias and mse
+bktSummary<-corebkt4[!is.na(predictedLength)&!is.na(observedLength),
+                     .(rmse=sqrt(sum(((observedLength-predictedLength))^2)/.N),
+                       relativeBias=sum((observedLength-predictedLength)/observedLength)/.N)]
+bntSummary<-corebnt4[!is.na(predictedLength)&!is.na(observedLength),
+                     .(rmse=sqrt(sum(((observedLength-predictedLength))^2)/.N),
+                       relativeBias=sum((observedLength-predictedLength)/observedLength)/.N)]
+
