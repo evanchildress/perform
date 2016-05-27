@@ -2,13 +2,23 @@ library(perform)
 library(plotHacks)
 library(plotrix)
 
-layMat<-matrix(data=c(1, 1, 2, 2, 3, 3 ,
-                      9 ,9 ,9 ,9 ,14,14,
-                      15,4, 4, 5, 5, 6 ,
-                      12,10,10,10,10,11,
-                      13,7 ,7 ,7, 7, 8),
-               nrow=5,ncol=6,byrow=T)
-height<-c(3,0.8,3,0.8,0.8)
+#With equations
+# layMat<-matrix(data=c(1, 1, 2, 2, 3, 3 ,
+#                       9 ,9 ,9 ,9 ,14,14,
+#                       15,4, 4, 5, 5, 6 ,
+#                       12,10,10,10,10,11,
+#                       13,7 ,7 ,7, 7, 8),
+#                nrow=5,ncol=6,byrow=T)
+
+#Without equations
+layMat<-matrix(data=c(1, 1, 2, 2, 11,
+                      6 ,6 ,6 ,6 ,11,
+                      10,3, 3, 4, 4,
+                      8,7,7,7,7,
+                      9,5 ,5 ,5, 5 ),
+               nrow=5,ncol=5,byrow=T)
+
+height<-c(3,0.6,3,0.6,0.6)
 eqCex<-1.4
 layout.show(layout(layMat,heights=height))
 tiff.par("vignettes/conceptualFig.tif",width = 6.7,height=7,oma=c(0.1,0.1,0,0),
@@ -42,17 +52,17 @@ par(xpd=F)
 text(0.5,1.1,quote(bold("b")),cex=1.5)
 
 #3. Performance Equation
-par(xpd=NA)
-plot(NA,xlim=c(0,1),ylim=c(0,1),axes=F,xlab="",ylab="")
-text(0.35,0.85,"(Eq. 1)",cex=eqCex)
-text(0.35,0.6,
-     bquote(P==bgroup("{",atop(e^{-(frac(temp-T[opt],2*sigma))^2}~"  ;"~temp<=T[opt],
-                            1-(frac(temp-T[opt],T[opt]-CT[max]))^2~"  ;"~temp>T[opt]),
-                      "")),cex=eqCex)
-par(xpd=F)
+# par(xpd=NA)
+# plot(NA,xlim=c(0,1),ylim=c(0,1),axes=F,xlab="",ylab="")
+# text(0.35,0.85,"(Eq. 1)",cex=eqCex)
+# text(0.35,0.6,
+#      bquote(P==bgroup("{",atop(e^{-(frac(temp-T[opt],2*sigma))^2}~"  ;"~temp<=T[opt],
+#                             1-(frac(temp-T[opt],T[opt]-CT[max]))^2~"  ;"~temp>T[opt]),
+#                       "")),cex=eqCex)
+# par(xpd=F)
 
 
-#4. Performance over time
+#3. Performance over time
 perf<-predictPerformance(t$temperature,tOpt=14,ctMax=20.5,sigma=4)
 par(mar=c(2.5,3,0,0))
 plot(perf~t$datetime,xlab="",ylab="",type='l',xaxt='n')
@@ -64,7 +74,7 @@ text(as.POSIXct("2010-06-10"),-0.5,bquote(t[f]))
 text(as.POSIXct("2010-01-10"),1,bquote(bold("c")),cex=1.5)
 
 
-#5. Von bert
+#4. Von bert
 x<-seq(0,250,1)
 y<-0.015+x*-6e-5
 plot(y~x,ylab="",ylim=c(0,0.02),
@@ -78,15 +88,17 @@ axis(2,seq(0,0.015,0.005),labels=c(0,NA,NA,NA))
 axis(1,seq(0,250,50),labels=c(0,NA,NA,NA,NA,NA))
 title(ylab=expression(G[opt]),line=1,cex=1.2)
 text(4,0.02,bquote(bold("d")),cex=1.5)
+text(160,0.013,bquote(Eq.~2),cex=1.5)
 
 #6. Von bert equation
-par(xpd=NA)
-plot(NA,xlim=c(0,1),ylim=c(0,1),axes=F,xlab="",ylab="")
-text(-0.5,0.9,"(Eq. 2)",cex=eqCex)
-text(-0.5,0.8,bquote(G[opt]==k*(L[infinity]-L[i])+epsilon),cex=eqCex)
-text(-0.5,0.7,bquote(epsilon %~% normal(0,sd)),cex=eqCex)
-par(xpd=F)
-#7.Growth over time
+# par(xpd=NA)
+# plot(NA,xlim=c(0,1),ylim=c(0,1),axes=F,xlab="",ylab="")
+# text(-0.5,0.9,"(Eq. 2)",cex=eqCex)
+# text(-0.5,0.8,bquote(G[opt]==k*(L[infinity]-L[i])+epsilon),cex=eqCex)
+# text(-0.5,0.7,bquote(epsilon %~% normal(0,sd)),cex=eqCex)
+# par(xpd=F)
+
+#5.Growth over time
 #Plot
 # growth<-perf*0.01
 # plot(growth~t$datetime,type='l',
@@ -99,29 +111,30 @@ text(0.5,0.5,bquote(Size[t[f]]~"="~Size[t[i]]+sum(P[t] %*% G[opt],i=t[i],t[f])),
 #par(mar=c(2.5,3,0,0))
 
 
-#8. Growth summation bit
-par(xpd=NA)
-plot(NA,xlim=c(0,1),ylim=c(0,1),xlab="",ylab="",axes=F)
-text(-0.8,0.5,"(Eq. 3)",cex=eqCex)
-par(xpd=F)
+#6. Growth summation bit
+# par(xpd=NA)
+# plot(NA,xlim=c(0,1),ylim=c(0,1),xlab="",ylab="",axes=F)
+# text(-0.8,0.5,"(Eq. 3)",cex=eqCex)
+# par(xpd=F)
 #text(0.4,0.5,bquote(G[t[i]~to~t[f]]~"="~sum(P[t] %*% G[],i=t[i],t[f])),cex=1.2)
 
-#9. plot arrows between first two rows
+#7. plot arrows between first two rows
 #par(mar=c(0,0,0,0))
 plot(NA,xlim=c(0,1),ylim=c(0,1),axes=F,xlab="",ylab="")
 x<-c(0.45,0.65)
-radius<-0.06
+radius<-0.04
 lw<-3
 draw.arc(x=x[1],y=1,radius=radius,2*pi*3/4,pi,lwd=lw,lend=2)
 draw.arc(x=x[2],y=1,radius=radius,2*pi,3*pi/2,lwd=lw,lend=2)
 lines(x,rep(0.6,2),lwd=lw)
 arrows(0.55,0.58,0.55,0,lwd=lw,length=0.15)
+text(0.55,0.85,"Eq. 1",cex=1.5)
 
-#10. plot arrows between bottom two rows
+#8. plot arrows between bottom two rows
 
 plot(NA,xlim=c(0,1),ylim=c(0,1),axes=F,xlab="",ylab="")
 x<-c(0.45,0.65)
-radius<-0.06
+radius<-0.04
 draw.arc(x=x[1],y=1,radius=radius,2*pi*3/4,pi,lwd=lw,lend=2)
 draw.arc(x=x[2],y=1,radius=radius,2*pi,3*pi/2,lwd=lw,lend=2)
 lines(x,rep(0.6,2),lwd=lw)

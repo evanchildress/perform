@@ -18,7 +18,7 @@ for(r in "west brook"){
                             ctMaxPrecision=0.5)
   )
 
-  core<-createCoreData("electrofishing") %>%
+  core<-createCoreData("electrofishing",columnsToAdd="observedWeight") %>%
     data.table() %>%
     .[,n:=.N,by=tag] %>%
     .[n>1] %>%

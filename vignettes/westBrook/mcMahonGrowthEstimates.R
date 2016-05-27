@@ -82,6 +82,7 @@ mcMahonGrowth<-function(weight,time,tempData){
 }
 core<-core[!is.na(observedWeight)]
 core<-core[,n:=.N,tag][n>1][,n:=NULL]
+setkey(core,tag,detectionDate)
 core[,wExp:=mcMahonGrowth(observedWeight,time,tempData=t),by=tag]
 core[,lExp:=exp(predict(lengthWeight,data.frame(observedWeight=wExp)))]
 setkey(core,river,year,season)
@@ -95,14 +96,16 @@ core<-bktBiomass[core] %>%
   setkey(tag,detectionDate)
 core[,residual:=observedWeight-wExp]
 
-gr<-core[ageInSamples<=3,.(gObsWeight=diff(observedWeight),
+gr<-core[,.(gObsWeight=diff(observedWeight),
             gExpWeight=wExp[2:length(wExp)]-observedWeight[1:(length(wExp)-1)],
             gObs=diff(observedLength),
             gExp=lExp[2:length(lExp)]-observedLength[1:(length(lExp)-1)],
             startLength=observedLength[1:(length(wExp)-1)],
             startDate=detectionDate[1:(length(wExp)-1)],
-            endDate=detectionDate[2:length(wExp)]),
+            endDate=detectionDate[2:length(wExp)],
+            endAge=ageInSamples[2:length(wExp)]),
          by=tag]
+gr<-gr[endAge<=3]
 lengthSumStats<-core[!is.na(observedLength)&!is.na(lExp)&ageInSamples<=3,
                      .(relativeBias=sum(lExp-observedLength)/.N/mean(observedLength),
                        rmse=sqrt(sum((lExp-observedLength)^2)/.N))]
@@ -117,7 +120,7 @@ growthSumStats<-gr[!is.na(gObs)&!is.na(gExp)&!is.na(gObsWeight)&!is.na(gExpWeigh
 
 tiff.par("vignettes/westBrook/results/figures/mcMahonGrowth.tif")
 plot(gExp~gObs,data=gr,pch=16,col=gray(0.5,0.5),
-     ylab="McMahon Model Predicted Growth (g)",
-     xlab="Observed Growth (g)")
+     ylab="McMahon Model Predicted Growth (mm)",
+     xlab="Observed Growth (mm)")
 abline(0,1)
 dev.off()
