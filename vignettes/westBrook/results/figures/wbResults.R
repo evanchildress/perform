@@ -97,6 +97,13 @@ for(sp in c("bkt","bnt")){
   res<-res[,.(parameter,value)]
 
   assign(paste0("res",sp),res)
+
+  assign(paste0(sp,"Summary"),core[!is.na(predictedLength)&!is.na(observedLength),
+                       .(rmse=sqrt(sum(((observedLength-predictedLength))^2)/.N),
+                         relativeBias=sum((observedLength-predictedLength)/observedLength)/.N)])
+  assign(paste0(sp,"GrowthSummary"),gr[!is.na(predGrowth)&!is.na(obsGrowth),
+                .(rmse=sqrt(sum(((obsGrowth-predGrowth))^2)/.N),
+                  relativeBias=sum((obsGrowth-predGrowth))/.N/mean(obsGrowth))])
 }
 dev.off()
 
