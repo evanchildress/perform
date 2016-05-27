@@ -12,7 +12,7 @@ for(sp in c("bkt","bnt")){
     plot(NA,xlim=c(0,22),ylim=c(-1,1),
          xlab=bquote(Temperature~(degree*C)),ylab="Relative Performance",
          main=c("Brook Trout","Brown Trout")[which(sp==c("bkt",'bnt'))])
-    for(i in sample(1:length(out$sims.list$tOpt),300,replace=T)){
+    for(i in sample(1:length(out$sims.list$tOpt),1000,replace=T)){
       points(predictPerformance(0:22,tOpt=out$sims.list$tOpt[i],
                                 sigma=out$sims.list$sigma[i],
                                 ctMax=out$sims.list$ctMax[i])~I(0:22),
@@ -97,6 +97,13 @@ for(sp in c("bkt","bnt")){
   res<-res[,.(parameter,value)]
 
   assign(paste0("res",sp),res)
+
+  assign(paste0(sp,"Summary"),core[!is.na(predictedLength)&!is.na(observedLength),
+                       .(rmse=sqrt(sum(((observedLength-predictedLength))^2)/.N),
+                         relativeBias=sum((observedLength-predictedLength)/observedLength)/.N)])
+  assign(paste0(sp,"GrowthSummary"),gr[!is.na(predGrowth)&!is.na(obsGrowth),
+                .(rmse=sqrt(sum(((obsGrowth-predGrowth))^2)/.N),
+                  relativeBias=sum((obsGrowth-predGrowth))/.N/mean(obsGrowth))])
 }
 dev.off()
 

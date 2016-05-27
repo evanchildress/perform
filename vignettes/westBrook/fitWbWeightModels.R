@@ -8,12 +8,12 @@ for(r in "west brook"){
   # for(sp in c("ats")){
     if(sp=="bnt"&r=="wb obear") next
 
-  priors<-list(bkt=list(tOptMean=0,#14.2,
+  priors<-list(bkt=list(tOptMean=10,#14.2,
                             tOptPrecision=0.0001,
                             ctMaxMean=25,#23.4,
                             ctMaxPrecision=0.0001,
                             ctUltimate=40),#25.3),
-                   bnt=list(tOptMean=0,#15.95,
+                   bnt=list(tOptMean=10,#15.95,
                             tOptPrecision=0.0001,
                             ctMaxMean=25,#22.5,
                             ctMaxPrecision=0.0001,
@@ -34,7 +34,7 @@ for(r in "west brook"){
     addSampleProperties() %>%
     filter(river==r&species==sp) %>%
     addEnvironmental(funName="mean") %>%
-    rename(medianFlow=meanFlow)%>%
+    rename(medianFlow=meanFlow) %>%
     select(-meanTemperature,-lagDetectionDate) %>%
     data.table() %>%
     .[,diffSample:=c(NA,diff(sampleIndex)),by=tag]
@@ -55,16 +55,16 @@ for(r in "west brook"){
     core[tag==t&
            sampleIndex %in%
            sampleIndex[min(which(diffSample>1)):length(sampleIndex)],
-         observedLength:=NA]
+         observedWeight:=NA]
   }
   core[,diffSample:=NULL]
-  core<-core[,nMeasures:=sum(!is.na(observedLength)),by=tag] %>%
+  core<-core[,nMeasures:=sum(!is.na(observedWeight)),by=tag] %>%
         .[nMeasures>1] %>%
         .[,nMeasures:=NULL] %>%
         .[,lastObs:=detectionDate==max(detectionDate),by=tag] %>%
-        .[!lastObs|!is.na(observedLength)] %>%
+        .[!lastObs|!is.na(observedWeight)] %>%
         .[,lastObs:=NULL] %>%
-        .[,firstDate:=min(detectionDate[!is.na(observedLength)]),tag] %>%
+        .[,firstDate:=min(detectionDate[!is.na(observedWeight)]),tag] %>%
         .[detectionDate>=firstDate] %>%
         .[,firstDate:=NULL]
 
@@ -109,8 +109,9 @@ for(r in "west brook"){
         "lengthDATA",
         "ind",
         "season")]
+  jagsData$lengthDATA<-core[,log(observedWeight)]
 
-  core<-core[,.(tag,tagIndex,detectionDate,observedLength,
+  core<-core[,.(tag,tagIndex,detectionDate,observedLength,observedWeight,
                 bktBiomass,bntBiomass,medianFlow)]
 
 
@@ -215,27 +216,37 @@ for(r in "west brook"){
     jagsData$nEvalRows<-length(jagsData$evalRows)
   }
 
+  getInit<-function(observedWeight,time){
+    whichNA<-which(is.na(observedWeight))
+    init<-rep(as.numeric(NA),length(observedWeight))
+    for(i in whichNA){
+      init[i]<-sum(predictPerformance(t[time[i-1]:time[i],temperature],13,19.5,4))
 
-  core[,lengthInit:=approx(observedLength,n=length(observedLength))$y,by=tag]
-  core[!is.na(observedLength),lengthInit:=NA]
+    }
+    return(init)
+  }
+  core[,lengthInit:=approx(log(observedWeight),n=length(observedWeight))$y,by=tag]
+  #core[,lengthInit:=getInit(observedWeight,time),by=tag]
+
+  core[!is.na(observedWeight),lengthInit:=NA]
 
   inits<-function(){list(lengthData=core$lengthInit,
-                         maxAdd=5,
-                         tOpt=16,
-                         beta1=0.015,
-                         beta2=-6e-05,
+                         ctMax=19,
+                         tOpt=13,
+                         b=0.324,
+                         c=307,
                          eps=0.003)
   }
-
+  modelLocation<-"vignettes/westBrook/modelWeightField.R"
   parsToMonitor<-c("beta1","beta2","beta3","beta4","beta5",
                    "tOpt",'ctMax',"sigma","ranMonth","sigmaMonth",
-                   'eps',"sigmaInd","lengthExp","b")
-  #out<-fitModel(jagsData=jagsData,inits=inits,parallel=T,params=parsToMonitor,
-  #              nb=5000,ni=7000,nt=1,modelFile="modelLengthField.R",codaOnly="lengthExp")
-  #saveRDS(out,file=paste0("vignettes/westBrook/results/out",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
+                   'eps',"sigmaInd","lengthExp","b","c")
+  out<-fitModel(jagsData=jagsData,inits=inits,parallel=T,params=parsToMonitor,
+                nb=5000,ni=7000,nt=1,modelFile=modelLocation,codaOnly="lengthExp")
+  saveRDS(out,file=paste0("vignettes/westBrook/results/outWeight",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
   saveRDS(core,file=paste0("vignettes/westBrook/results/core",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
-  #print(out)
-  #assign(paste0("out",sp,which(r==rivers)),out)
+  print(out)
+  assign(paste0("out",sp,which(r==rivers)),out)
   assign(paste0("core",sp,which(r==rivers)),core)
   # core[jagsData$evalRows,predictedLength:=apply(out$sims.list$lengthExp,2,mean)]
   # core[,residual:=observedLength-predictedLength]
@@ -260,19 +271,19 @@ for(r in "west brook"){
 core<-get(paste0("core",sp,which(r==rivers)))
 core$dummy<-1
 core[,firstObs:=detectionDate==min(detectionDate),by=tag] %>%
-      .[firstObs==F,predictedLength:=apply(out$sims.list$lengthExp,2,mean)]
+      .[firstObs==F,predictedWeight:=(apply(out$sims.list$lengthExp,2,mean))]
 
 assign(paste0("gr",sp,which(r==rivers)),
-       core[,.(obsGrowth=diff(observedLength),
-               predGrowth=predictedLength[2:length(observedLength)]-
-                 observedLength[1:(length(observedLength)-1)],
+       core[,.(obsGrowth=diff(observedWeight),
+               predGrowth=predictedWeight[2:length(observedWeight)]-
+                 observedWeight[1:(length(observedWeight)-1)],
                date=detectionDate[2:length(detectionDate)]),
             by=tag] %>%
          .[,residual:=obsGrowth-predGrowth])
 assign(paste0("core",sp,which(r==rivers)),core)
 
-plot(predictedLength~observedLength,data=get(paste0("core",sp,which(r==rivers))))
-a<-lm(predictedLength~observedLength,get(paste0("core",sp,which(r==rivers))))
+plot(predictedWeight~observedWeight,data=get(paste0("core",sp,which(r==rivers))))
+a<-lm(predictedWeight~observedWeight,get(paste0("core",sp,which(r==rivers))))
 text(75,150,bquote(R^2==.(round(summary(a)$r.squared,2))))
 
 plot(obsGrowth~predGrowth,data=get(paste0("gr",sp,which(r==rivers))),pch=19,col=gray(0.45,0.5))
@@ -303,12 +314,12 @@ text(5,15,bquote(R^2==.(round(summary(a)$r.squared,2))),col='black')
 }
 
 ###code to estimate bias and mse
-bktSummary<-corebkt4[!is.na(predictedLength)&!is.na(observedLength),
-                     .(rmse=sqrt(sum(((observedLength-predictedLength))^2)/.N),
-                       relativeBias=sum((observedLength-predictedLength)/observedLength)/.N)]
-bntSummary<-corebnt4[!is.na(predictedLength)&!is.na(observedLength),
-                     .(rmse=sqrt(sum(((observedLength-predictedLength))^2)/.N),
-                       relativeBias=sum((observedLength-predictedLength)/observedLength)/.N)]
+bktSummary<-corebkt4[!is.na(predictedWeight)&!is.na(observedWeight),
+                     .(rmse=sqrt(sum(((observedWeight-predictedWeight))^2)/.N),
+                       relativeBias=sum((observedWeight-predictedWeight)/observedWeight)/.N)]
+bntSummary<-corebnt4[!is.na(predictedWeight)&!is.na(observedWeight),
+                     .(rmse=sqrt(sum(((observedWeight-predictedWeight))^2)/.N),
+                       relativeBias=sum((observedWeight-predictedWeight)/observedWeight)/.N)]
 bktGrowthSummary<-grbkt4[!is.na(predGrowth)&!is.na(obsGrowth),
                          .(rmse=sqrt(sum(((obsGrowth-predGrowth))^2)/.N),
                            relativeBias=sum((obsGrowth-predGrowth))/.N/mean(obsGrowth))]
