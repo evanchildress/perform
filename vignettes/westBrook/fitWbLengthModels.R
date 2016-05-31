@@ -230,12 +230,12 @@ for(r in "west brook"){
   parsToMonitor<-c("beta1","beta2","beta3","beta4","beta5",
                    "tOpt",'ctMax',"sigma","ranMonth","sigmaMonth",
                    'eps',"sigmaInd","lengthExp","b")
-  #out<-fitModel(jagsData=jagsData,inits=inits,parallel=T,params=parsToMonitor,
-  #              nb=5000,ni=7000,nt=1,modelFile="modelLengthField.R",codaOnly="lengthExp")
-  #saveRDS(out,file=paste0("vignettes/westBrook/results/out",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
+  out<-fitModel(jagsData=jagsData,inits=inits,parallel=T,params=parsToMonitor,
+                nb=5000,ni=7000,nt=1,modelFile="modelLengthField.R",codaOnly="lengthExp")
+  saveRDS(out,file=paste0("vignettes/westBrook/results/out",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
   saveRDS(core,file=paste0("vignettes/westBrook/results/core",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
-  #print(out)
-  #assign(paste0("out",sp,which(r==rivers)),out)
+  print(out)
+  assign(paste0("out",sp,which(r==rivers)),out)
   assign(paste0("core",sp,which(r==rivers)),core)
   # core[jagsData$evalRows,predictedLength:=apply(out$sims.list$lengthExp,2,mean)]
   # core[,residual:=observedLength-predictedLength]
