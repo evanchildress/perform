@@ -3,24 +3,12 @@ reconnect()
 
 rivers<-c("wb jimmy","wb mitchell","wb obear","west brook")
 #r<-"wb jimmy"
-for(r in c("wb jimmy","wb mitchell","wb obear","west brook")){
+for(r in "west brook"){
   for(sp in c("bkt")){
   # for(sp in c("ats")){
     if(sp=="bnt"&r=="wb obear") next
 
-  priors<-list(bkt=list(tOptMean=0,#14.2,
-                            tOptPrecision=0.0001,
-                            ctMaxMean=25,#23.4,
-                            ctMaxPrecision=0.0001,
-                            ctUltimate=40),#25.3),
-                   bnt=list(tOptMean=0,#15.95,
-                            tOptPrecision=0.0001,
-                            ctMaxMean=25,#22.5,
-                            ctMaxPrecision=0.0001,
-                            ctUltimate=40)#28)
-  )
-
-  core<-createCoreData("electrofishing",columnsToAdd="observedWeight") %>%
+  core<-createCoreData("electrofishing") %>%
     data.table() %>%
     .[,n:=.N,by=tag] %>%
     .[n>1] %>%
@@ -29,7 +17,7 @@ for(r in c("wb jimmy","wb mitchell","wb obear","west brook")){
     addTagProperties() %>%
     createCmrData() %>%
     addKnownZ() %>%
-    #filter(knownZ==1) %>%
+    filter(knownZ==1) %>%
     fillSizeLocation(size=F) %>%
     addSampleProperties() %>%
     filter(river==r&species==sp) %>%
@@ -81,9 +69,9 @@ for(r in c("wb jimmy","wb mitchell","wb obear","west brook")){
 #   if(r=="wb obear"){
 #     core[,bntBiomass:=0]
 #   }
-  if(r=="wb mitchell"){
-    core[is.na(bntBiomass),bntBiomass:=0]
-  }
+#   if(r=="wb mitchell"){
+#     core[is.na(bntBiomass),bntBiomass:=0]
+#   }
 #   if(sp=="ats"){
 #     core[,":="(meanBktBiomass=mean(bktBiomass,na.rm=T),
 #                meanBntBiomass=mean(bntBiomass,na.rm=T)),by=season] %>%
@@ -177,19 +165,11 @@ for(r in c("wb jimmy","wb mitchell","wb obear","west brook")){
   jagsData$bntBiomassDATA<-scale(core$bntBiomass)[,1]
   jagsData$biomassDATA<-scale(core[[paste0(sp,"Biomass")]])[,1]
   jagsData$flowDATA<-scale(core$medianFlow)[,1]
-  jagsData$tOptMean<-priors[[sp]][["tOptMean"]]
-  jagsData$tOptPrecision<-priors[[sp]][["tOptPrecision"]]
-  jagsData$ctMaxMean<-priors[[sp]][["ctMaxMean"]]
-  jagsData$ctMaxPrecision<-priors[[sp]][["ctMaxPrecision"]]
-  jagsData$ctUltimate<-priors[[sp]][["ctUltimate"]]
+  jagsData$tOpt<-14.27
+  jagsData$ctMax<-23.78
+  jagsData$sigma<-4.72
 
-  jagsData$meanFlow<-mean(core$medianFlow,na.rm=T)
-  jagsData$sdFlow<-sd(core$medianFlow,na.rm=T)
-  jagsData$meanBktBiomass<-mean(core$bktBiomass,na.rm=T)
-  jagsData$sdBktBiomass<-sd(core$bktBiomass,na.rm=T)
-  jagsData$meanBntBiomass<-mean(core$bntBiomass,na.rm=T)
-  jagsData$sdBntBiomass<-sd(core$bntBiomass,na.rm=T)
-
+  # jagsData$yday<-yday(core$detectionDate)
 
   if(r=="wb obear"){
     jagsData$bntBiomassDATA<-rep(0,nrow(core))
@@ -235,13 +215,14 @@ for(r in c("wb jimmy","wb mitchell","wb obear","west brook")){
   }
 
   parsToMonitor<-c("beta1","beta2","beta3","beta4","beta5",
-                   "tOpt",'ctMax',"sigma","ranMonth","sigmaMonth",
-                   'eps',"sigmaInd","lengthExp","b")
+                   'eps',"sigmaInd","lengthExp")
+  modelFile<-"vignettes/westBrook/modelLengthFieldKnownCurve.R"
+
   out<-fitModel(jagsData=jagsData,inits=inits,parallel=T,params=parsToMonitor,
-                nb=5000,ni=7000,nt=1,modelFile="modelLengthField.R",codaOnly="lengthExp")
-  saveRDS(out,file=paste0("vignettes/westBrook/results/out",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
-  saveRDS(core,file=paste0("vignettes/westBrook/results/core",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
-  print(out)
+               nb=5000,ni=7000,nt=1,modelFile=modelFile,codaOnly="lengthExp")
+  saveRDS(out,file=paste0("vignettes/westBrook/results/outLabCurve",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
+  #saveRDS(core,file=paste0("vignettes/westBrook/results/core",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
+  #print(out)
   assign(paste0("out",sp,which(r==rivers)),out)
   assign(paste0("core",sp,which(r==rivers)),core)
   # core[jagsData$evalRows,predictedLength:=apply(out$sims.list$lengthExp,2,mean)]
@@ -251,7 +232,7 @@ for(r in c("wb jimmy","wb mitchell","wb obear","west brook")){
 
 
 
- for(r in c("wb jimmy","wb mitchell","wb obear","west brook")){
+ for(r in "west brook"){
    for(sp in c("bkt")){
      if(sp=="bnt"&r=="wb obear") next
 
@@ -322,23 +303,3 @@ bktGrowthSummary<-grbkt4[!is.na(predGrowth)&!is.na(obsGrowth),
 bntGrowthSummary<-grbnt4[!is.na(predGrowth)&!is.na(obsGrowth),
                          .(rmse=sqrt(sum(((obsGrowth-predGrowth))^2)/.N),
                            relativeBias=sum((obsGrowth-predGrowth))/.N/mean(obsGrowth))]
-
-
-plot(NA,xlim=c(0,25),ylim=c(-1.5,1))
-for(i in sample(1:length(out$sims.list$tOpt),300,replace=T)){
-  points(predictPerformance(seq(0,23.3,length.out=100),tOpt=outbkt1$sims.list$tOpt[i],
-                            sigma=outbkt1$sims.list$sigma[i],
-                            ctMax=outbkt1$sims.list$ctMax[i])~I(seq(0,23.3,length.out=100)),
-         type='l',col=palette()[1])
-
-  points(predictPerformance(seq(0,25.4,length.out=100),tOpt=outbkt2$sims.list$tOpt[i],
-                            sigma=outbkt2$sims.list$sigma[i],
-                            ctMax=outbkt2$sims.list$ctMax[i])~I(seq(0,24.4,length.out=100)),
-         type='l',col=palette()[2])
-
-  points(predictPerformance(seq(0,21.2,length.out=100),tOpt=outbkt3$sims.list$tOpt[i],
-                            sigma=outbkt3$sims.list$sigma[i],
-                            ctMax=outbkt3$sims.list$ctMax[i])~I(seq(0,21.2,length.out=100)),
-         type='l',col=palette()[3])
-}
-

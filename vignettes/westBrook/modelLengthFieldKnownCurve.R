@@ -1,9 +1,9 @@
 model{
 
   #performance parameters
-  ctMax~dnorm(ctMaxMean,ctMaxPrecision)T(tOpt,ctUltimate)
-  tOpt~dnorm(tOptMean,tOptPrecision)T(0,ctUltimate)
-  sigma~dunif(0,10)
+  # tOpt<-14.27
+  # ctMax<-23.78
+  # sigma<-4.72
 
   #derivative of the von Bert is linear, intercept and slope(with length) of hourly growth rate
   beta1~dnorm(0,100)#T(0,1000)
@@ -21,8 +21,8 @@ model{
        sigmaInd~dunif(0,1)
 
     for(t in 1:nTimes){
-      perf[t]<-ifelse(tempDATA[t]>tOpt,1-((tempDATA[t]-tOpt)/(tOpt-ctMax))^2,
-                    exp(-((tempDATA[t]-tOpt)/(2*sigma))^2))
+      perf[t]<-ifelse(tempDATA[t]>14.27,1-((tempDATA[t]-14.27)/(14.27-ctMax))^2,
+                    exp(-((tempDATA[t]-14.27)/(2*sigma))^2))
     }
 
 
