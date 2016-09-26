@@ -15,16 +15,16 @@ model{
   eps~dunif(0,0.1)
 
     #individual random effect on grMax
-    gamma~dnorm(0,100)
-    psi<-0
+    gamma~dnorm(0,0.0001)T(0,)
+    psi<-dunif(0,1)
 
     tauInd<-1/pow(sigmaInd,2)
     sigmaInd~dunif(0,1)
 
        for(f in 1:nInd){
-         ranSlope[f]~dnorm(beta2,tauInd)T(0,)
-         # bla[f]<-pow(ranSlope[f],psi)
-         beta1[f]<-gamma
+         ranSlope[f]<-beta2
+         bla[f]<-pow(ranSlope[f],psi)
+         beta1[f]<-gamma*bla[f]
 
        }
 
