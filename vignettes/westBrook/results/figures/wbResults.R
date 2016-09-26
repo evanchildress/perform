@@ -1,7 +1,8 @@
 library(plotHacks)
+library(perform)
 
 parameter=c("beta1","beta2","beta3","beta4","beta5","tOpt",
-                            "ctMax","sigma",'eps')
+                            "ctMax","sigma","sigmaInd",'eps')
 
 r<-"west brook"
 tiff.par("vignettes/westBrook/results/figures/wbResults.tif",
@@ -73,9 +74,9 @@ for(sp in c("bkt","bnt")){
                                                      q97.5=q97.5*24)]
   res<-rbind(res,
              data.table(parameter="lInf",
-                        mean=mean(out$sims.list$beta1/(-out$sims.list$beta2)),
-                        q2.5=quantile(out$sims.list$beta1/(-out$sims.list$beta2),0.025),
-                        q97.5=quantile(out$sims.list$beta1/(-out$sims.list$beta2),0.975))
+                        mean=mean(apply(out$sims.list$beta1,1,mean)/(-out$sims.list$beta2)),
+                        q2.5=quantile(apply(out$sims.list$beta1,1,mean)/(-out$sims.list$beta2),0.025),
+                        q97.5=quantile(apply(out$sims.list$beta1,1,mean)/(-out$sims.list$beta2),0.975))
   )
   res[,value:=as.character(NA)]
   for(p in parameter[!parameter %in% c("ctMax","sigma","tOpt","lInf","eps")]){
