@@ -4,7 +4,7 @@ reconnect()
 rivers<-c("wb jimmy","wb mitchell","wb obear","west brook")
 #r<-"wb jimmy"
 for(r in c("west brook")){
-  for(sp in c("bkt")){
+  for(sp in c("bkt","bnt")){
   # for(sp in c("ats")){
     if(sp=="bnt"&r=="wb obear") next
 
@@ -20,6 +20,7 @@ for(r in c("west brook")){
                             ctUltimate=40)#28)
   )
 
+endDate<-ifelse(sp=="bnt",as.POSIXct("2013-07-01"),as.POSIXct("2016-10-01"))
   core<-createCoreData("electrofishing",columnsToAdd="observedWeight") %>%
     data.table() %>%
     .[,n:=.N,by=tag] %>%
@@ -27,9 +28,9 @@ for(r in c("west brook")){
     .[,n:=NULL] %>%
     data.frame() %>%
     addTagProperties() %>%
-    createCmrData() %>%
+    createCmrData(dateEnd = endDate) %>%
     addKnownZ() %>%
-    #filter(knownZ==1) %>%
+    filter(knownZ==1) %>%
     fillSizeLocation(size=F) %>%
     addSampleProperties() %>%
     filter(river==r&species==sp) %>%
@@ -38,6 +39,7 @@ for(r in c("west brook")){
     select(-meanTemperature,-lagDetectionDate) %>%
     data.table() %>%
     .[,diffSample:=c(NA,diff(sampleIndex)),by=tag]
+
 
   if(sp=="bnt"){
     core[tag=="257c59a7cc"&observedLength==258,observedLength:=NA]
@@ -227,17 +229,15 @@ for(r in c("west brook")){
   core[!is.na(observedLength),lengthInit:=NA]
 
   inits<-function(){list(lengthData=core$lengthInit,
-                         beta2=6e-05,
-                         eps=0.003,
-                         psi=0,
-                         gamma=0.01)
+                         beta2= -5e-05,
+                         eps=0.003)
   }
 
   parsToMonitor<-c("beta1","beta2","beta3","beta4","beta5",
                    "tOpt",'ctMax',"sigma","ranInd","ranSlope",
                    'eps',"sigmaInd","lengthExp","b","gamma","psi")
   out<-fitModel(jagsData=jagsData,inits=inits,parallel=T,params=parsToMonitor,
-                nb=500,ni=700,nt=1,modelFile="modelLengthFieldRanSlope.R",codaOnly=c("lengthExp","ranInd","ranSlope","beta1"))
+                nb=8000,ni=18000,nt=10,modelFile="modelLengthField.R",codaOnly=c("lengthExp","ranInd","ranSlope","beta1"))
   saveRDS(out,file=paste0("vignettes/westBrook/results/out",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
   saveRDS(core,file=paste0("vignettes/westBrook/results/core",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
   print(out)
