@@ -107,7 +107,7 @@ text(160,0.013,bquote(Eq.~2),cex=1.5)
 # axis(2,seq(-0.005,0.01,0.005),labels=c(NA,0,NA,NA))
 par(mar=c(0,0,0,0))
 plot(NA,xlim=c(0,1),ylim=c(0,1),xlab="",ylab="",axes=F)
-text(0.5,0.5,bquote(Size[t[f]]~"="~Size[t[i]]+sum(P[t] %*% G[opt],i=t[i],t[f])),cex=eqCex*1.2)
+text(0.5,0.5,bquote(Size['i,t+n']~"="~Size[i,t]+G[Opt["i,t"]]%*%sum(p(T[u]),'u=t','t+n')),cex=eqCex*1.2)
 #par(mar=c(2.5,3,0,0))
 
 
