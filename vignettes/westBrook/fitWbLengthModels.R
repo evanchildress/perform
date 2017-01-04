@@ -49,7 +49,11 @@ endDate<-ifelse(sp=="bnt",as.POSIXct("2013-07-01"),as.POSIXct("2016-10-01"))
     core[tag=="1bf0fec1d7"&observedLength==66,observedLength:=NA]
   }
   if(sp=="bkt"){
-    core[tag=="257c67ca48"&observedLength==224,observedLength:=NA]
+    core[tag=="257c67ca48"&observedLength==118,observedLength:=218]
+    core[tag=="00088cfb9e"&observedLength==223,observedLength:=NA]
+    core[tag=="00088d215d"&observedLength==67,observedLength:=NA]
+    core[tag=="0009f6f4d5"&observedLength==115,observedLength:=NA]
+
   }
 
   movers<-unique(core[diffSample>1,tag])
