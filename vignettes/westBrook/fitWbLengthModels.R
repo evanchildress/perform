@@ -4,7 +4,7 @@ reconnect()
 rivers<-c("wb jimmy","wb mitchell","wb obear","west brook")
 #r<-"wb jimmy"
 for(r in c("west brook")){
-  for(sp in c("bkt","bnt")){
+  for(sp in c("bnt")){
   # for(sp in c("ats")){
     if(sp=="bnt"&r=="wb obear") next
 
@@ -20,7 +20,7 @@ for(r in c("west brook")){
                             ctUltimate=40)#28)
   )
 
-endDate<-ifelse(sp=="bnt",as.POSIXct("2013-07-01"),as.POSIXct("2016-10-01"))
+endDate<-as.POSIXct("2016-10-01")
   core<-createCoreData("electrofishing",columnsToAdd="observedWeight") %>%
     data.table() %>%
     .[,n:=.N,by=tag] %>%
@@ -41,20 +41,20 @@ endDate<-ifelse(sp=="bnt",as.POSIXct("2013-07-01"),as.POSIXct("2016-10-01"))
     .[,diffSample:=c(NA,diff(sampleIndex)),by=tag]
 
 
-  if(sp=="bnt"){
-    core[tag=="257c59a7cc"&observedLength==258,observedLength:=NA]
-    core[tag=="1c2c582218"&observedLength==240,observedLength:=NA]
-    core[tag=="00088d22ae"&observedLength==70,observedLength:=NA]
-    core[tag=="257c59b698"&observedLength==117,observedLength:=NA]
-    core[tag=="1bf0fec1d7"&observedLength==66,observedLength:=NA]
-  }
-  if(sp=="bkt"){
-    core[tag=="257c67ca48"&observedLength==118,observedLength:=218]
-    core[tag=="00088cfb9e"&observedLength==223,observedLength:=NA]
-    core[tag=="00088d215d"&observedLength==67,observedLength:=NA]
-    core[tag=="0009f6f4d5"&observedLength==115,observedLength:=NA]
-
-  }
+  # if(sp=="bnt"){
+  #   core[tag=="257c59a7cc"&observedLength==258,observedLength:=NA]
+  #   core[tag=="1c2c582218"&observedLength==240,observedLength:=NA]
+  #   core[tag=="00088d22ae"&observedLength==70,observedLength:=NA]
+  #   core[tag=="257c59b698"&observedLength==117,observedLength:=NA]
+  #   core[tag=="1bf0fec1d7"&observedLength==66,observedLength:=NA]
+  # }
+  # if(sp=="bkt"){
+  #   core[tag=="257c67ca48"&observedLength==118,observedLength:=218]
+  #   core[tag=="00088cfb9e"&observedLength==223,observedLength:=NA]
+  #   core[tag=="00088d215d"&observedLength==67,observedLength:=NA]
+  #   core[tag=="0009f6f4d5"&observedLength==115,observedLength:=NA]
+  #
+  # }
 
   movers<-unique(core[diffSample>1,tag])
   for(t in movers){
@@ -242,8 +242,8 @@ endDate<-ifelse(sp=="bnt",as.POSIXct("2013-07-01"),as.POSIXct("2016-10-01"))
                    'eps',"sigmaInd","lengthExp","b","gamma","psi")
   out<-fitModel(jagsData=jagsData,inits=inits,parallel=T,params=parsToMonitor,
                 nb=8000,ni=18000,nt=10,modelFile="modelLengthField.R",codaOnly=c("lengthExp","ranInd","ranSlope","beta1"))
-  saveRDS(out,file=paste0("vignettes/westBrook/results/out",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
-  saveRDS(core,file=paste0("vignettes/westBrook/results/core",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
+  # saveRDS(out,file=paste0("vignettes/westBrook/results/out",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
+  # saveRDS(core,file=paste0("vignettes/westBrook/results/core",sp,toupper(substr(r,1,1)),substr(r,2,nchar(r)),".rds"))
   print(out)
   assign(paste0("out",sp,which(r==rivers)),out)
   assign(paste0("core",sp,which(r==rivers)),core)
@@ -253,95 +253,95 @@ endDate<-ifelse(sp=="bnt",as.POSIXct("2013-07-01"),as.POSIXct("2016-10-01"))
 }
 
 
-
- for(r in c("wb jimmy","wb mitchell","wb obear","west brook")){
-   for(sp in c("bkt")){
-     if(sp=="bnt"&r=="wb obear") next
-
-  out<-get(paste0("out",sp,which(r==rivers)))
-  plot(NA,xlim=c(0,22),ylim=c(-1,1),main=paste(r,sp),xlab="temp",ylab="performance")
-  for(i in sample(1:length(out$sims.list$tOpt),300,replace=T)){
-    points(predictPerformance(0:22,tOpt=out$sims.list$tOpt[i],
-                              sigma=out$sims.list$sigma[i],
-                              ctMax=out$sims.list$ctMax[i])~I(0:22),
-           type='l',col='gray')
-  }
-
-core<-get(paste0("core",sp,which(r==rivers)))
-core$dummy<-1
-core[,firstObs:=detectionDate==min(detectionDate),by=tag] %>%
-      .[firstObs==F,predictedLength:=apply(out$sims.list$lengthExp,2,mean)]
-
-assign(paste0("gr",sp,which(r==rivers)),
-       core[,.(obsGrowth=diff(observedLength),
-               predGrowth=predictedLength[2:length(observedLength)]-
-                 observedLength[1:(length(observedLength)-1)],
-               date=detectionDate[2:length(detectionDate)]),
-            by=tag] %>%
-         .[,residual:=obsGrowth-predGrowth])
-assign(paste0("core",sp,which(r==rivers)),core)
-
-plot(predictedLength~observedLength,data=get(paste0("core",sp,which(r==rivers))))
-a<-lm(predictedLength~observedLength,get(paste0("core",sp,which(r==rivers))))
-text(75,150,bquote(R^2==.(round(summary(a)$r.squared,2))))
-
-plot(obsGrowth~predGrowth,data=get(paste0("gr",sp,which(r==rivers))),pch=19,col=gray(0.45,0.5))
-a<-lm(obsGrowth~predGrowth,get(paste0("gr",sp,which(r==rivers))))
-abline(a)
-abline(0,1,lty=2)
-text(5,15,bquote(R^2==.(round(summary(a)$r.squared,2))),col='black')
-
-
-#   plot(mmPerDay~startLength,data=get(paste0("gr",which(r==rivers))),
-#        col=gray(0.5,0.5),pch=19,main=r,xlab="startLength",ylab="growth (mm/day)")
-#   x<-seq(60,300)
+#
+#  for(r in c("wb jimmy","wb mitchell","wb obear","west brook")){
+#    for(sp in c("bkt")){
+#      if(sp=="bnt"&r=="wb obear") next
+#
+#   out<-get(paste0("out",sp,which(r==rivers)))
+#   plot(NA,xlim=c(0,22),ylim=c(-1,1),main=paste(r,sp),xlab="temp",ylab="performance")
 #   for(i in sample(1:length(out$sims.list$tOpt),300,replace=T)){
-#     points(predictVonBert(x,
-#                           out$sims.list$beta[i,1],
-#                           out$sims.list$beta[i,2],
-#                           derivative=T)*24~x,
-#            type='l',col='blue')
+#     points(predictPerformance(0:22,tOpt=out$sims.list$tOpt[i],
+#                               sigma=out$sims.list$sigma[i],
+#                               ctMax=out$sims.list$ctMax[i])~I(0:22),
+#            type='l',col='gray')
 #   }
 #
+# core<-get(paste0("core",sp,which(r==rivers)))
+# core$dummy<-1
+# core[,firstObs:=detectionDate==min(detectionDate),by=tag] %>%
+#       .[firstObs==F,predictedLength:=apply(out$sims.list$lengthExp,2,mean)]
+#
+# assign(paste0("gr",sp,which(r==rivers)),
+#        core[,.(obsGrowth=diff(observedLength),
+#                predGrowth=predictedLength[2:length(observedLength)]-
+#                  observedLength[1:(length(observedLength)-1)],
+#                date=detectionDate[2:length(detectionDate)]),
+#             by=tag] %>%
+#          .[,residual:=obsGrowth-predGrowth])
+# assign(paste0("core",sp,which(r==rivers)),core)
+#
+# plot(predictedLength~observedLength,data=get(paste0("core",sp,which(r==rivers))))
+# a<-lm(predictedLength~observedLength,get(paste0("core",sp,which(r==rivers))))
+# text(75,150,bquote(R^2==.(round(summary(a)$r.squared,2))))
+#
+# plot(obsGrowth~predGrowth,data=get(paste0("gr",sp,which(r==rivers))),pch=19,col=gray(0.45,0.5))
+# a<-lm(obsGrowth~predGrowth,get(paste0("gr",sp,which(r==rivers))))
+# abline(a)
+# abline(0,1,lty=2)
+# text(5,15,bquote(R^2==.(round(summary(a)$r.squared,2))),col='black')
 #
 #
-#   predicted<-apply(out$sims.list$length,2,mean)
-#   plot(predicted~get(paste0("gr",which(r==rivers)))$growth,main=r,
-#        ylab="predicted growth",xlab="observed growth")
-#   abline(0,1)
- }
-}
-
-###code to estimate bias and mse
-bktSummary<-corebkt4[!is.na(predictedLength)&!is.na(observedLength),
-                     .(rmse=sqrt(sum(((observedLength-predictedLength))^2)/.N),
-                       relativeBias=sum((observedLength-predictedLength)/observedLength)/.N)]
-bntSummary<-corebnt4[!is.na(predictedLength)&!is.na(observedLength),
-                     .(rmse=sqrt(sum(((observedLength-predictedLength))^2)/.N),
-                       relativeBias=sum((observedLength-predictedLength)/observedLength)/.N)]
-bktGrowthSummary<-grbkt4[!is.na(predGrowth)&!is.na(obsGrowth),
-                         .(rmse=sqrt(sum(((obsGrowth-predGrowth))^2)/.N),
-                           relativeBias=sum((obsGrowth-predGrowth))/.N/mean(obsGrowth))]
-bntGrowthSummary<-grbnt4[!is.na(predGrowth)&!is.na(obsGrowth),
-                         .(rmse=sqrt(sum(((obsGrowth-predGrowth))^2)/.N),
-                           relativeBias=sum((obsGrowth-predGrowth))/.N/mean(obsGrowth))]
-
-
-plot(NA,xlim=c(0,25),ylim=c(-1.5,1))
-for(i in sample(1:length(out$sims.list$tOpt),300,replace=T)){
-  points(predictPerformance(seq(0,23.3,length.out=100),tOpt=outbkt1$sims.list$tOpt[i],
-                            sigma=outbkt1$sims.list$sigma[i],
-                            ctMax=outbkt1$sims.list$ctMax[i])~I(seq(0,23.3,length.out=100)),
-         type='l',col=palette()[1])
-
-  points(predictPerformance(seq(0,25.4,length.out=100),tOpt=outbkt2$sims.list$tOpt[i],
-                            sigma=outbkt2$sims.list$sigma[i],
-                            ctMax=outbkt2$sims.list$ctMax[i])~I(seq(0,24.4,length.out=100)),
-         type='l',col=palette()[2])
-
-  points(predictPerformance(seq(0,21.2,length.out=100),tOpt=outbkt3$sims.list$tOpt[i],
-                            sigma=outbkt3$sims.list$sigma[i],
-                            ctMax=outbkt3$sims.list$ctMax[i])~I(seq(0,21.2,length.out=100)),
-         type='l',col=palette()[3])
-}
-
+# #   plot(mmPerDay~startLength,data=get(paste0("gr",which(r==rivers))),
+# #        col=gray(0.5,0.5),pch=19,main=r,xlab="startLength",ylab="growth (mm/day)")
+# #   x<-seq(60,300)
+# #   for(i in sample(1:length(out$sims.list$tOpt),300,replace=T)){
+# #     points(predictVonBert(x,
+# #                           out$sims.list$beta[i,1],
+# #                           out$sims.list$beta[i,2],
+# #                           derivative=T)*24~x,
+# #            type='l',col='blue')
+# #   }
+# #
+# #
+# #
+# #   predicted<-apply(out$sims.list$length,2,mean)
+# #   plot(predicted~get(paste0("gr",which(r==rivers)))$growth,main=r,
+# #        ylab="predicted growth",xlab="observed growth")
+# #   abline(0,1)
+#  }
+# }
+#
+# ###code to estimate bias and mse
+# bktSummary<-corebkt4[!is.na(predictedLength)&!is.na(observedLength),
+#                      .(rmse=sqrt(sum(((observedLength-predictedLength))^2)/.N),
+#                        relativeBias=sum((observedLength-predictedLength)/observedLength)/.N)]
+# bntSummary<-corebnt4[!is.na(predictedLength)&!is.na(observedLength),
+#                      .(rmse=sqrt(sum(((observedLength-predictedLength))^2)/.N),
+#                        relativeBias=sum((observedLength-predictedLength)/observedLength)/.N)]
+# bktGrowthSummary<-grbkt4[!is.na(predGrowth)&!is.na(obsGrowth),
+#                          .(rmse=sqrt(sum(((obsGrowth-predGrowth))^2)/.N),
+#                            relativeBias=sum((obsGrowth-predGrowth))/.N/mean(obsGrowth))]
+# bntGrowthSummary<-grbnt4[!is.na(predGrowth)&!is.na(obsGrowth),
+#                          .(rmse=sqrt(sum(((obsGrowth-predGrowth))^2)/.N),
+#                            relativeBias=sum((obsGrowth-predGrowth))/.N/mean(obsGrowth))]
+#
+#
+# plot(NA,xlim=c(0,25),ylim=c(-1.5,1))
+# for(i in sample(1:length(out$sims.list$tOpt),300,replace=T)){
+#   points(predictPerformance(seq(0,23.3,length.out=100),tOpt=outbkt1$sims.list$tOpt[i],
+#                             sigma=outbkt1$sims.list$sigma[i],
+#                             ctMax=outbkt1$sims.list$ctMax[i])~I(seq(0,23.3,length.out=100)),
+#          type='l',col=palette()[1])
+#
+#   points(predictPerformance(seq(0,25.4,length.out=100),tOpt=outbkt2$sims.list$tOpt[i],
+#                             sigma=outbkt2$sims.list$sigma[i],
+#                             ctMax=outbkt2$sims.list$ctMax[i])~I(seq(0,24.4,length.out=100)),
+#          type='l',col=palette()[2])
+#
+#   points(predictPerformance(seq(0,21.2,length.out=100),tOpt=outbkt3$sims.list$tOpt[i],
+#                             sigma=outbkt3$sims.list$sigma[i],
+#                             ctMax=outbkt3$sims.list$ctMax[i])~I(seq(0,21.2,length.out=100)),
+#          type='l',col=palette()[3])
+# }
+#

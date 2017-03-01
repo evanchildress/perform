@@ -29,7 +29,7 @@ sp<-"bnt"
     .[,n:=NULL] %>%
     data.frame() %>%
     addTagProperties() %>%
-    createCmrData(dateEnd=as.POSIXct("2013-08-05")) %>%
+    createCmrData(dateEnd=as.POSIXct("2016-10-01")) %>%
     addKnownZ() %>%
     #filter(knownZ==1) %>%
     fillSizeLocation(size=F) %>%

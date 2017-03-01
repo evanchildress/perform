@@ -8,7 +8,8 @@ for(r in c("west brook")){
   # for(sp in c("ats")){
     if(sp=="bnt"&r=="wb obear") next
 
-endDate<-ifelse(sp=="bnt",as.POSIXct("2013-07-01"),as.POSIXct("2016-10-01"))
+endDate<-as.POSIXct("2016-10-01")
+
   core<-createCoreData("electrofishing",columnsToAdd="observedWeight") %>%
     data.table() %>%
     .[,n:=.N,by=tag] %>%
@@ -124,62 +125,11 @@ endDate<-ifelse(sp=="bnt",as.POSIXct("2013-07-01"),as.POSIXct("2016-10-01"))
   )),
   by=.(tag,detectionDate)]
 
-#   t[,month:=ceiling((month(date))/3)]
-#   hoursPerMonth<-t[date>=as.Date("2003-01-01")&date<=as.Date("2014-12-31"),
-#                       .(hours=.N/length(unique(year(date)))),
-#                       by=month] %>%
-#     setkey(month)
-#
-#   propMonth<-core[,.(tag,time)] %>%
-#     .[,startTime:=as.numeric(shift(time)),by=tag] %>%
-#     .[,obs:=1:nrow(.)] %>%
-#     .[is.na(startTime),startTime:=time-1]
-#
-#   propMonth<-propMonth[!is.na(startTime),t[startTime:time,.N,by=month] %>%
-#                          setkey(month) %>%
-#                          .[hoursPerMonth] %>%
-#                          .[is.na(N),N:=0] %>%
-#                          .[,propMonth:=N/hours] %>%
-#                          .[,.(propMonth,month)],
-#                        by=.(obs)] %>%
-#     melt(id.vars=c("month","obs")) %>%
-#     acast(obs~month)
-# #
-#   jagsData$time<-core$time<-list(lengthDATA=core$observedLength,
-#                  firstObsRows=which(core$firstObs==1),
-#                  nFirstObsRows=length(which(core$firstObs==1)),
-#                  evalRows=which(core$firstObs==0),
-#                  nEvalRows=length(which(core$firstObs==0)),
-#                  propMonth=propMonth,
-#                  tempDATA=t$temperature,
-#                  nTimes=nrow(t),
-#                  time=core$time,
-#                  nMonths=max(hoursPerMonth$month)
-#   )
-  # jagsData$propMonth<-propMonth
-  # jagsData$nMonths<-max(hoursPerMonth$month)
-  # jagsData$tempDATA<-t$temperature
-  # jagsData$nTimes<-nrow(t)
-  # jagsData$time<-core$time
+
   jagsData$nInd<-max(core$tagIndex)
-  # jagsData$isSpring<-as.numeric(jagsData$season==2)
-  # jagsData$bktBiomassDATA<-scale(core$bktBiomass)[,1]
-  # jagsData$bntBiomassDATA<-scale(core$bntBiomass)[,1]
-  # jagsData$biomassDATA<-scale(core[[paste0(sp,"Biomass")]])[,1]
-  # jagsData$flowDATA<-scale(core$medianFlow)[,1]
-  # jagsData$tOptMean<-priors[[sp]][["tOptMean"]]
-  # jagsData$tOptPrecision<-priors[[sp]][["tOptPrecision"]]
-  # jagsData$ctMaxMean<-priors[[sp]][["ctMaxMean"]]
-  # jagsData$ctMaxPrecision<-priors[[sp]][["ctMaxPrecision"]]
-  # jagsData$ctUltimate<-priors[[sp]][["ctUltimate"]]
-  #
-  # jagsData$meanFlow<-mean(core$medianFlow,na.rm=T)
-  # jagsData$sdFlow<-sd(core$medianFlow,na.rm=T)
-  # jagsData$meanBktBiomass<-mean(core$bktBiomass,na.rm=T)
-  # jagsData$sdBktBiomass<-sd(core$bktBiomass,na.rm=T)
-  # jagsData$meanBntBiomass<-mean(core$bntBiomass,na.rm=T)
-  # jagsData$sdBntBiomass<-sd(core$bntBiomass,na.rm=T)
   jagsData$age<-core$age
+  jagsData$evalRows<-1:nrow(core)
+  jagsData$nEvalRows<-nrow(core)
 
   if(r=="wb obear"){
     jagsData$bntBiomassDATA<-rep(0,nrow(core))
